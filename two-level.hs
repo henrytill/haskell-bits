@@ -1,14 +1,16 @@
 module TwoLevel where
 
-data RTree = RTip
-           | RLeaf Int
-           | RFork RTree RTree
-           deriving Show
+data RTree
+  = RTip
+  | RLeaf Int
+  | RFork RTree RTree
+  deriving Show
 
-data T x = Tip
-         | Leaf Int
-         | Fork x x
-         deriving Show
+data T x
+  = Tip
+  | Leaf Int
+  | Fork x x
+  deriving Show
 
 data Tree = Wrap (T Tree) deriving Show
 
