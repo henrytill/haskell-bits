@@ -1,5 +1,7 @@
 module ApplicativeExamples where
 
+import Control.Monad.Reader
+
 -- Transposing 'matrices'
 
 transpose :: [[a]] -> [[a]]
@@ -22,3 +24,8 @@ zapp _      _      = []
 transpose' :: [[a]] -> [[a]]
 transpose' []       = repeat []
 transpose' (xs:xss) = repeat (:) `zapp` xs `zapp` transpose xss
+
+readerFunction :: Int -> Int
+readerFunction = do
+  x <- ask
+  return (x + 2)
