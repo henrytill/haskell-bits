@@ -24,14 +24,10 @@ module Zipper
 -- >>> let tree = Section [Section [Item "a", Item "*", Item "b"], Item "+", Section [Item "c", Item "*", Item "d"]] :: Tree String
 -- >>> let example = Loc tree Top :: Location String
 
--- * A trie...
-
 data Tree a
   = Item a
   | Section [Tree a]
   deriving (Eq, Show)
-
--- * ...and its Zipper
 
 -- | A 'Path' is like a Zipper, allowing one to rip the tree structure down to a
 -- certain location.
@@ -52,9 +48,6 @@ data Path a
 -- Loc (Section [Section [Item "a",Item "*",Item "b"],Item "+",Section [Item "c",Item "*",Item "d"]]) Top
 --
 data Location a = Loc (Tree a) (Path a) deriving (Eq, Show)
-
--- * Navigation
-
 
 -- |
 -- >>> goRight $ goDown example
@@ -81,6 +74,8 @@ goLeft (Loc t p) = case p of
 -- Loc (Section [Item "a",Item "*",Item "b"]) (Node [] Top [Item "+",Section [Item "c",Item "*",Item "d"]])
 -- >>> goDown $ goDown example
 -- Loc (Item "a") (Node [] (Node [] Top [Item "+",Section [Item "c",Item "*",Item "d"]]) [Item "*",Item "b"])
+-- >>> goRight $ goDown $ goDown example
+-- Loc (Item "*") (Node [Item "a"] (Node [] Top [Item "+",Section [Item "c",Item "*",Item "d"]]) [Item "b"])
 --
 goDown (Loc t p) = case t of
   Item _             -> error "down of item"
@@ -96,10 +91,15 @@ goUp (Loc t p) = case p of
   Node left up right -> Loc (Section (reverse left ++ (t:right))) up
 
 -- | A function to access the /n/th son of the current tree
+--
+-- >>> nthLoc example 1
+-- Loc (Section [Item "a",Item "*",Item "b"]) (Node [] Top [Item "+",Section [Item "c",Item "*",Item "d"]])
+-- >>> nthLoc example 3
+-- Loc (Section [Item "c",Item "*",Item "d"]) (Node [Item "+",Section [Item "a",Item "*",Item "b"]] Top [])
+--
 nthLoc :: (Ord t, Num t) => Location a -> t -> Location a
 nthLoc loc = nthRec
   where
-    nthRec 1 = goDown loc
-    nthRec n = if n > 0
-               then goRight $ nthRec (n - 1)
-               else error "nthLoc expects a positive integer"
+    nthRec 1         = goDown loc
+    nthRec n | n > 0 = goRight $ nthRec (n - 1)
+    nthRec _         = error "nthLoc expects a positive integer"
