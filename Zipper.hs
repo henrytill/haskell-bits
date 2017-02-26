@@ -7,7 +7,7 @@
 -- <http://gallium.inria.fr/~huet/PUBLIC/zip.pdf Functional Pearls: The Zipper>, by Gerard Huet
 --
 module Zipper
-  ( -- * A trie...
+  ( -- * A tree...
     Tree(..)
     -- * ...and its Zipper
   , Path(..)
@@ -24,6 +24,8 @@ module Zipper
 -- >>> let tree = Section [Section [Item "a", Item "*", Item "b"], Item "+", Section [Item "c", Item "*", Item "d"]] :: Tree String
 -- >>> let example = Loc tree Top :: Location String
 
+-- | A 'Tree' is the data structure for which we implement a Zipper.
+--
 data Tree a
   = Item a
   | Section [Tree a]
