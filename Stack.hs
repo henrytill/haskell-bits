@@ -1,6 +1,5 @@
 module Stack (Stack, empty, isEmpty, push, top, pop) where
 
-
 newtype Stack a = StackImpl [a] -- opaque!
 
 empty :: Stack a
