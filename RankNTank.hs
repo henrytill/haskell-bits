@@ -1,10 +1,13 @@
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE KindSignatures #-}
 
 -- <https://ocharles.org.uk/blog/guest-posts/2014-12-18-rank-n-types.html>
 
 module RankNTank where
 
 import Control.Monad.State
+import Data.Char
 import System.Random
 
 -- | A monomorphic function
@@ -168,3 +171,38 @@ instance Functor ListC where
   -- >>> toList $ fmap (*3) cl
   -- [9,6,3]
   fmap f (ListC g) = g (\x xs -> consC (f x) xs) nilC
+
+-- * GADTs and continuation passing style
+
+data Some :: * -> * where
+  SomeInt  :: Int -> Some Int
+  SomeChar :: Char -> Some Char
+  Anything :: a -> Some a
+
+unSome :: Some a -> a
+unSome (SomeInt x)  = x + 3
+unSome (SomeChar c) = toLower c
+unSome (Anything x) = x
+
+-- | 'SomeC' is the CPS-encoded version of 'Some'
+newtype SomeC a = SomeC
+  { runSomeC :: forall r. ((a ~ Int) => Int -> r)
+                       -> ((a ~ Char) => Char -> r)
+                       -> (a -> r)
+                       -> r
+  }
+
+-- | 'unSomeC'
+--
+-- >>> let a = SomeC (\f _ _ -> f 4)
+-- >>> let b = SomeC (\_ g _ -> g 'A')
+-- >>> let c = SomeC (\_ _ h -> h "Hello!")
+-- >>> unSomeC a
+-- 7
+-- >>> unSomeC b
+-- 'a'
+-- >>> unSomeC c
+-- "Hello!"
+--
+unSomeC :: SomeC a -> a
+unSomeC a = runSomeC a (\x -> x + 3) (\c -> toLower c) (\x -> x)
