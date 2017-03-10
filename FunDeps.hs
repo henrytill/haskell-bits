@@ -1,4 +1,7 @@
-{-# LANGUAGE FunctionalDependencies, UndecidableInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE FlexibleContexts       #-}
+{-# LANGUAGE UndecidableInstances   #-}
 
 module FunDeps where
 
