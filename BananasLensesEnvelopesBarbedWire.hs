@@ -1,8 +1,18 @@
 {-# LANGUAGE DeriveFunctor #-}
 
+-- |
+-- Module      : BananasLensesEnvelopesBarbedWire
+-- Description : Functional Programming with Bananas, Lenses, Envelopes and Barbed Wire
+-- Maintainer  : henrytill@gmail.com
+-- Stability   : experimental
+--
+-- <https://www.researchgate.net/publication/2592417_Functional_Programming_with_Bananas_Lenses_Envelopes_and_Barbed_Wire>
+--
 module BananasLensesEnvelopesBarbedWire where
 
 import Prelude hiding (length, filter, zip, iterate, map)
+
+-- * Catamorphisms
 
 data List a
   = Nil
@@ -12,8 +22,6 @@ data List a
 xs, ys :: List Int
 xs = Cons (1, Cons (2, Cons (3, Nil)))
 ys = Cons (3, Cons (2, Cons (1, Nil)))
-
--- 1. Catamorphisms
 
 type Cata a b = (b, a -> b -> b)
 
@@ -37,11 +45,14 @@ filter p = foldrList (Nil, op)
                        then Cons (a, as)
                        else as
 
+-- * Anamorphisms
 
--- 2. Anamorphisms
+-- $anamorphisms
 --
+-- @
 -- Anamorphisms are not well-known in the functional programming folklore.  They
 -- are called `unfold` by Bird & Wadler, who spend only a few words on them.
+-- @
 
 type Ana a b = (b -> (a, b), b -> Bool)
 
@@ -96,14 +107,20 @@ anaMap f = unfold (g, p)
 
     g (Cons (a, as)) = (f a, as)
 
--- 3. Hylomorphisms
+-- * Hylomorphisms
+
+-- $hylomorphisms
 --
+-- @
 -- A recursive function whose call-tree is isomorphic to a cons-list, i.e. a
 -- linear recursive function, is called a /hylomorphism/.
+-- @
 --
+-- @
 -- A hylomorphism corresponds to the composition of an anamorphism that builds
 -- the call-tree as an explicit data structure and a catamorphism that reduces
 -- this data object to the required value.
+-- @
 
 type Hylo a b c = ((c, b -> c -> c), (a -> (b, a), a -> Bool))
 
@@ -123,16 +140,19 @@ fac = ((1, (*)), (g, p))
 
     g n = (n, n - 1)
 
--- 4. Paramorphisms
+-- * Paramorphisms
+
+-- $paramorphism
 --
--- ...cover (the) pattern of primitive recursion
+-- @...cover (the) pattern of primitive recursion.@
 --
--- Wikipedia:
+-- From <https://en.wikipedia.org/wiki/Paramorphism Wikipedia>:
 --
+-- @
 -- A paramorphism is an extension of the concept of catamorphism first
 -- introduced by Lambert Meertens to deal with a form which "eats its argument
 -- and keeps it too", as exemplified by the factorial function.
---
+-- @
 
 type Para a b = (b, a -> b -> b)
 
