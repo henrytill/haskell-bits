@@ -75,7 +75,7 @@ filter p = foldrList (Nil, op)
 
 type Ana a b = (b -> (a, b), b -> Bool)
 
--- | Given a predicate `p` and a function `g`, a list-anamorphism is defined as:
+-- | Given a predicate `p` and a function `g`, `unfold` represents a list-anamorphism.
 unfold :: Ana a b -> b -> List a
 unfold h@(g, p) b = if p b then Nil else Cons (a, unfold h b')
   where (a, b') = g b
