@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
-
 -- |
 -- Module      : BananasLensesEnvelopesBarbedWire
 -- Description : Functional Programming with Bananas, Lenses, Envelopes and Barbed Wire
@@ -7,6 +5,18 @@
 -- Stability   : experimental
 --
 -- <https://www.researchgate.net/publication/2592417_Functional_Programming_with_Bananas_Lenses_Envelopes_and_Barbed_Wire>
+--
+-- References:
+--
+--     * <https://en.wikipedia.org/wiki/Bird%E2%80%93Meertens_formalism>
+--
+--     * <https://en.wikipedia.org/wiki/Catamorphism>
+--
+--     * <https://en.wikipedia.org/wiki/Anamorphism>
+--
+--     * <https://en.wikipedia.org/wiki/Paramorphism>
+--
+--     * <http://blog.ezyang.com/2010/05/bananas-lenses-envelopes-and-barbed-wire-a-translation-guide/>
 --
 module BananasLensesEnvelopesBarbedWire where
 
@@ -17,10 +27,19 @@ import Prelude hiding (length, filter, zip, iterate, map)
 data List a
   = Nil
   | Cons (a, (List a))
-  deriving (Eq, Show, Functor)
+  deriving (Eq, Show)
 
 xs, ys :: List Int
+-- |
+-- >>> xs
+-- Cons (1,Cons (2,Cons (3,Nil)))
+--
 xs = Cons (1, Cons (2, Cons (3, Nil)))
+
+-- |
+-- >>> ys
+-- Cons (3,Cons (2,Cons (1,Nil)))
+--
 ys = Cons (3, Cons (2, Cons (1, Nil)))
 
 type Cata a b = (b, a -> b -> b)
@@ -92,8 +111,7 @@ map f (Cons (a, as)) = Cons (f a, map f as)
 -- Cons (2,Cons (3,Cons (4,Nil)))
 --
 cataMap f = foldrList (Nil, op)
-  where
-    a `op` bs = Cons (f a, bs)
+  where a `op` bs = Cons (f a, bs)
 
 -- | Applies `f` to every element in a given `List` (Anamorphic version)
 --
