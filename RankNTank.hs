@@ -186,8 +186,8 @@ unSome (Anything x) = x
 
 -- | 'SomeC' is the CPS-encoded version of 'Some'
 newtype SomeC a = SomeC
-  { runSomeC :: forall r. ((a ~ Int) => Int -> r)
-                       -> ((a ~ Char) => Char -> r)
+  { runSomeC :: forall r. (a ~ Int  => Int  -> r)
+                       -> (a ~ Char => Char -> r)
                        -> (a -> r)
                        -> r
   }
