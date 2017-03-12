@@ -2,8 +2,6 @@
 
 module Origami where
 
--- Unfolds generate data structures and folds consume them
-
 -- * Origami with lists: sorting
 
 data List a
@@ -33,6 +31,8 @@ wrap x = Cons x Nil
 nil :: List a -> Bool
 nil Nil        = True
 nil (Cons _ _) = False
+
+-- $ Unfolds generate data structures and folds consume them
 
 -- ** Folds for lists
 
