@@ -1,5 +1,13 @@
 {-# OPTIONS_GHC -Wall #-}
 
+-- |
+-- Module      : Origami
+-- Description : Origami programming
+-- Maintainer  : henrytill@gmail.com
+-- Stability   : experimental
+--
+-- <https://www.cs.ox.ac.uk/jeremy.gibbons/publications/origami.pdf>
+--
 module Origami where
 
 -- * Origami with lists: sorting
@@ -13,7 +21,7 @@ data List a
 -- >>> let x = Cons 1 (Cons 2 (Cons 3 Nil))
 -- >>> let y = Cons 4 (Cons 5 (Cons 6 Nil))
 
--- | A conctructor for singleton `List`s
+-- | A constructor for singleton `List`s
 --
 -- >>> wrap 7
 -- Cons 7 Nil
@@ -32,7 +40,9 @@ nil :: List a -> Bool
 nil Nil        = True
 nil (Cons _ _) = False
 
--- $ Unfolds generate data structures and folds consume them
+-- $
+-- =Note:
+-- Unfolds /generate/ data structures and folds /consume/ them.
 
 -- ** Folds for lists
 
@@ -117,11 +127,9 @@ isort1 = foldL insert1 Nil
 
 -- *** Exercise 3.5
 
--- $paramorphism
---
--- A paramorphism captures a recursion pattern where the result depends not
--- only on a recursive call on a substructre, but also on the substructure
--- itself.
+-- $
+-- A paramorphism captures a recursion pattern where the result depends not only
+-- on a recursive call on a substructure, but also on the substructure itself.
 
 -- | The paramorphism operator for a list.  The argument `f` takes a copy of the
 -- tail `xs` along with the result `paraL f e xs` of the recursive call on that
@@ -154,13 +162,16 @@ unfoldL' f u = case f u of
                  Just (x, v) -> Cons x (unfoldL' f v)
 
 -- $
+-- =Note:
 -- Sometimes it is convenient to provide the single argument of `unfoldL'` as
 -- three components: a predicate indicating when that argument should return
 -- `Nothing`, and two functions yielding the two components of the pair when it
 -- does not.
 
--- | `unfoldL` takes a predicate `p` indicating when the seed should unfold the
--- empty list, and for when this fails to hold, functions `f` giving the head of
--- the list and `g` giving the seed from which to unfold the tail:
-unfoldL :: (b -> Bool) -> (b -> a) -> (b -> b) -> b -> List a
+unfoldL
+  :: (b -> Bool) -- ^ Predicate `p` determines when the seed should unfold the empty `List`
+  -> (b -> a)    -- ^ When @p == False@, `f` gives the head of the `List`
+  -> (b -> b)    -- ^ When @p == False@, `g` gives the seed from which to unfold the tail
+  -> b           -- ^ The thing to unfold
+  -> List a      -- ^ The unfolded value
 unfoldL p f g b = if p b then Nil else Cons (f b) (unfoldL p f g (g b))
