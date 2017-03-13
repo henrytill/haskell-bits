@@ -20,9 +20,9 @@
 --
 module BananasLensesEnvelopesBarbedWire where
 
-import Prelude hiding (length, filter, zip, iterate, map)
+import Prelude hiding (length, filter, zip, iterate, map, (||))
 
--- * Catamorphisms
+-- * 2. The data type of lists
 
 data List a
   = Nil
@@ -42,6 +42,8 @@ xs = Cons (1, Cons (2, Cons (3, Nil)))
 --
 ys = Cons (3, Cons (2, Cons (1, Nil)))
 
+-- ** Catamorphisms
+
 type Cata a b = (b, a -> b -> b)
 
 foldrList :: Cata a b -> List a -> b
@@ -60,11 +62,9 @@ length = foldrList (0, op)
 -- Cons (1,Cons (3,Nil))
 --
 filter p = foldrList (Nil, op)
-  where a `op` as = if p a
-                       then Cons (a, as)
-                       else as
+  where a `op` as = if p a then Cons (a, as) else as
 
--- * Anamorphisms
+-- ** Anamorphisms
 
 -- $anamorphisms
 --
@@ -125,7 +125,7 @@ anaMap f = unfold (g, p)
 
     g (Cons (a, as)) = (f a, as)
 
--- * Hylomorphisms
+-- ** Hylomorphisms
 
 -- $hylomorphisms
 --
@@ -151,6 +151,7 @@ foldAndUnfold h@((nil, op), (g, p)) a =
 --
 -- >>> foldAndUnfold fac 5
 -- 120
+--
 fac = ((1, (*)), (g, p))
   where
     p 0 = True
@@ -158,7 +159,7 @@ fac = ((1, (*)), (g, p))
 
     g n = (n, n - 1)
 
--- * Paramorphisms
+-- ** Paramorphisms
 
 -- $paramorphism
 --
@@ -193,3 +194,28 @@ listPara h@(b, op) (Cons (a, as)) = a `op` (as, listPara h as)
 --
 tails = (Cons (Nil, Nil), op)
   where a `op` (as, tls) = Cons (Cons (a, as), tls)
+
+-- * 3. Algebraic data types
+
+-- @
+-- In order to define the notions of cata-, ana-, hylo-, and paramorphism for
+-- arbitrary datatypes, we now present a generic theory of data types and
+-- functions on them.  For this we consider a recurive data type (also called
+-- 'algebraic' data types in Miranda) to be defined as the least fixed point of
+-- a functor.
+-- @
+
+-- ** Functors
+
+-- *** Product
+
+-- *** Sum
+
+-- *** Arrow
+
+-- *** Identity, Constants
+
+-- *** Lifting
+
+-- *** Sectioning
+
