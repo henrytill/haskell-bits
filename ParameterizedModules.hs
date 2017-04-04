@@ -14,5 +14,3 @@ data Mod2 = Mod2
 
 instance Show Mod where
   show _ = "<Mod>"
-
-
