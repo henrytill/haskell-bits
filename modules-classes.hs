@@ -1,4 +1,6 @@
-{-# LANGUAGE ExistentialQuantification, TypeFamilies #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE TypeFamilies              #-}
+{-# LANGUAGE UndecidableInstances      #-}
 
 module ModulesAsClasses where
 
@@ -22,13 +24,9 @@ instance SetSig IntSet where
 
 data IntSet' = IntSet'
 
-newtype AbsSet a = AbsSetImpl [a]
-
 instance SetSig IntSet' where
-  type Elem IntSet'              = Int
-  type Set IntSet'               = AbsSet Int
-  empty _                        = AbsSetImpl []
-  member _ i (AbsSetImpl s)      = i `elem` s
-  insert _ i s @ (AbsSetImpl xs) = if member IntSet' i s
-                                   then s
-                                   else AbsSetImpl (i : xs)
+  type Elem IntSet' = Elem IntSet
+  type Set IntSet'  = Set IntSet
+  empty _           = empty IntSet
+  member _          = member IntSet
+  insert _          = insert IntSet
