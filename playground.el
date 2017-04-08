@@ -11,7 +11,8 @@
 
 (bind-map ht/playground-leader-map
   :keys ("M-m c")
-  :evil-keys ("SPC c"))
+  :evil-keys ("SPC c")
+  :major-modes (haskell-mode))
 
 (bind-map-set-keys ht/playground-leader-map
   "d" 'ht/doctest

@@ -1,18 +1,25 @@
-module Stack (Stack, empty, isEmpty, push, top, pop) where
+module Stack
+  ( Stack
+  , empty
+  , isEmpty
+  , push
+  , top
+  , pop
+  ) where
 
-newtype Stack a = StackImpl [a] -- opaque!
+newtype Stack a = Stack [a] -- opaque!
 
 empty :: Stack a
-empty = StackImpl []
+empty = Stack []
 
 isEmpty :: Stack a -> Bool
-isEmpty (StackImpl s) = null s
+isEmpty (Stack s) = null s
 
 push :: a -> Stack a -> Stack a
-push x (StackImpl s) = StackImpl (x:s)
+push x (Stack s) = Stack (x:s)
 
 top :: Stack a -> a
-top (StackImpl s) = head s
+top (Stack s) = head s
 
-pop :: Stack a -> (a,Stack a)
-pop (StackImpl (s:ss)) = (s,StackImpl ss)
+pop :: Stack a -> (a, Stack a)
+pop (Stack (s:ss)) = (s, Stack ss)
