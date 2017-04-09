@@ -2,7 +2,7 @@
 
 module ApplicativeExamples where
 
-import Prelude hiding (repeat, sequence)
+import Prelude hiding (any, concat, elem, repeat, sequence, traverse, Traversable)
 
 -- * 1. Introduction
 
@@ -78,7 +78,6 @@ transpose (xs:xss) = repeat (:) `zapp` xs `zapp` transpose xss
 
 -- ** Evaluating expressions
 
-
 data Exp v
   = Var v
   | Val Int
@@ -118,7 +117,7 @@ eval (Add p q) = k (+) `s` eval p `s` eval q
 -- This definition of `eval` is in a fairly standard applicative style, even
 -- though we are abstracting an environment.
 
--- * The `Applicative` class
+-- * 2. The `Applicative` class
 
 -- $
 -- > infixl 4 (<*>)
@@ -198,12 +197,214 @@ instance Applicative ZipList where
   pure    = ZipList . repeat
   a <*> b = ZipList (zapp (unZipList a) (unZipList b))
 
-type Matrix a = ZipList (ZipList a)
+-- |
+-- >>> transpose' [[1,2,3], [4,5,6], [7,8,9]]
+-- [[1,4,7],[2,5,8],[3,6,9]]
+--
+transpose' :: [[a]] -> [[a]]
+transpose' = unZipList . appDist . fmap ZipList
+
+-- * 3. Traversing data structures
+
+-- | The /applicative distributor/, of which `sequence` and `transpose` are both
+-- instances
+appDist :: Applicative f => [f a] -> f [a]
+appDist []       = pure []
+appDist (xs:xss) = pure (:) <*> xs <*> appDist xss
+
+-- $
+-- Distribution is often used together with "map".
+--
+-- For example, given the monadic "failure-propagation" applicative functor for
+-- `Maybe`, we can map some failure-prone operation (a function @ a -> Maybe b
+-- @) across a list of inputs in such a way that any individual failure causes
+-- failure overall.
+--
+-- > flakyMap :: (a -> Maybe b) -> [a] -> Maybe [b]
+-- > flakyMap f ss = dist (fmap f ss)
+--
+-- As you can see `flakyMap` traverses /ss/ twice - once to apply /f/, and again
+-- to collect the results.  More generally it is preferable to define this
+-- applicative mapping operation directly, with a single traversal:
+
+rawTraverse :: Applicative f => (a -> f b) -> [a] -> f [b]
+rawTraverse f []     = pure []
+rawTraverse f (x:xs) = pure (:) <*> f x <*> rawTraverse f xs
+
+-- $
+-- This is just the way that you would implement ordinary `fmap` for lists, but
+-- the right-hand sides are shifted into the idiom.
+
+class Traversable t where
+  traverse :: Applicative f => (a -> f b) -> t a     -> f (t b)
+  dist     :: Applicative f =>               t (f a) -> f (t a)
+  dist      = traverse id
+
+instance Traversable [] where
+  traverse = rawTraverse
+
+-- $
+-- Of course we can recover an oridinary "map" operator by taking /f/ to be the
+-- identity - the simple applicative functor in which all computations are pure:
+
+newtype Id a = An { an :: a }
+  deriving Show
+
+instance Functor Id where
+  fmap f (An x) = An (f x)
+
+instance Applicative Id where
+  pure          = An
+  An f <*> An x = An (f x)
+
+-- $
+-- So with the __newtype__ signalling which `Applicative` functor to thread, we have:
 
 -- |
--- >>> transpose' (ZipList [ZipList [1,2,3], ZipList [4,5,6], ZipList [7,8,9]])
--- ZipList [ZipList [1,4,7],ZipList [2,5,8],ZipList [3,6,9]]
+-- >>> effmap (\x -> (x + 1)) [1,2,3]
+-- [2,3,4]
+effmap :: Traversable t => (a -> b) -> t a -> t b
+effmap f = an . traverse (An . f)
+
+-- $
+-- The rule of thumb for `traverse` is "like `fmap` but with (idioms) on the
+-- right"
+
+data Tree a
+  = Leaf
+  | Node (Tree a) a (Tree a)
+  deriving Show
+
+instance Traversable Tree where
+  traverse f Leaf         = pure Leaf
+  traverse f (Node l x r) = pure Node <*> traverse f l <*> f x <*> traverse f r
+
+-- $
+-- >>> let t = Node Leaf 43 (Node (Node Leaf 45 Leaf) 47 (Node (Node Leaf 49 Leaf) 51 Leaf))
+-- >>> traverse (\ x -> An (x * 3)) t
+-- An {an = Node Leaf 129 (Node (Node Leaf 135 Leaf) 141 (Node (Node Leaf 147 Leaf) 153 Leaf))}
+
+-- * 4. `Monoid`s are phantom `Applicative` functors
+
+newtype Accy o a = Acc { acc :: o }
+  deriving Show
+
+instance Functor (Accy o) where
+  fmap _ (Acc acc) = Acc acc
+
+-- $
+-- @ Accy o a @ is a /phantom type/ - its values have nothing to do with /a/, but
+-- it does yield the applicative functor of accumulating computations:
+
+instance Monoid o => Applicative (Accy o) where
+  pure _          = Acc mempty
+  Acc a <*> Acc b = Acc (a `mappend` b)
+
+-- $
+-- Now reduction or "crushing" is just a special kind of traversal, in the same
+-- way as with any other applicative functor.
+
+accumulate :: (Traversable t, Monoid o) => (a -> o) -> t a -> o
+accumulate f = acc . traverse (Acc . f)
+
+reduce :: (Traversable t, Monoid o) => t o -> o
+reduce = accumulate id
+
+-- $
+-- Operations like tree flattening and concatenation become straightforward:
+
+-- |
+-- >>> let t = Node Leaf 43 (Node (Node Leaf 45 Leaf) 47 (Node (Node Leaf 49 Leaf) 51 Leaf))
+-- >>> flatten t
+-- [43,45,47,49,51]
 --
-transpose' :: Matrix a -> Matrix a
-transpose' (ZipList [])       = fmap ZipList (pure [])
-transpose' (ZipList (xs:xss)) = fmap ZipList (pure (:) <*> xs <*> fmap unZipList (transpose' (ZipList xss)))
+flatten :: Tree a -> [a]
+flatten = accumulate (: [])
+
+-- |
+-- >>> concat [[1,2],[3,4],[5,6]]
+-- [1,2,3,4,5,6]
+--
+concat :: [[a]] -> [a]
+concat = reduce
+
+-- $
+-- We can extract even more work from instance inference if we use the type
+-- system to distinguish different monoids available for a given datatype.  Here
+-- we use the disjunctive structure of `Bool` to test for the presence of an
+-- element satisfying a given predicate:
+
+newtype Mighty = Might { might :: Bool }
+
+instance Monoid Mighty where
+  mempty                    = Might False
+  Might x `mappend` Might y = Might (x || y)
+
+-- |
+-- >>> any (== 1) [1,2,3,4]
+-- True
+-- >>> any (== 5) [1,2,3,4]
+-- False
+--
+any :: Traversable t => (a -> Bool) -> t a -> Bool
+any p = might . accumulate (Might . p)
+
+-- | @ any . (==) @ behaves just as the the `elem` function for lists
+--
+-- >>> elem 1 [1,2,3,4]
+-- True
+-- >>> elem 5 [1,2,3,4]
+-- False
+--
+elem :: (Eq a, Traversable t) => a -> t a -> Bool
+elem = any . (==)
+
+-- $
+-- `any` can also tell whether a variable from /v/ occurs free in an `Exp v`.
+-- Of course, `Bool` also has a conjunctive `Must`y structure, which is just as
+-- easy to exploit.
+
+-- * 5. `Applicative` versus `Monad`?
+
+-- ** Composing applicative functors
+
+-- $
+-- The `Applicative` class is /closed under composition/.
+
+newtype Comp f g a = Comp { comp :: f (g a) }
+
+instance (Functor f, Functor g) => Functor (Comp f g) where
+  fmap f (Comp x) = Comp (fmap (fmap f) x)
+
+-- $
+-- ...just by lifting the inner `Applicative` operations to the outer layer:
+
+instance (Applicative f, Applicative g) => Applicative (Comp f g) where
+  pure x              = Comp (pure (pure x))
+  Comp fs <*> Comp xs = Comp ((pure (<*>)) <*> fs <*> xs)
+
+-- ** Accumulating exceptions
+
+data Except err a = OK a | Failed err
+  deriving Show
+
+instance Functor (Except err) where
+  fmap _ (Failed err) = Failed err
+  fmap f (OK a)       = OK (f a)
+
+-- $
+-- A `Monad` instance for this type must abort the computation on the first
+-- error, as there is then no value to pass to the second argument of `>>=`.
+-- However with the `Applicative` interface we can continue in the face or
+-- errors:
+
+instance Monoid err => Applicative (Except err) where
+  pure                        = OK
+  OK f        <*> OK x        = OK (f x)
+  OK f        <*> Failed err  = Failed err
+  Failed err  <*> OK x        = Failed err
+  Failed err1 <*> Failed err2 = Failed (err1 `mappend` err2)
+
+-- $
+-- >>> pure (\x y z -> x + y + z) <*> OK 2 <*> Failed ["quux"] <*> Failed ["baz"]
+-- Failed ["quux","baz"]
