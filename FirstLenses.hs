@@ -1,14 +1,21 @@
-{-# LANGUAGE RankNTypes          #-}
-{-# LANGUAGE RecordWildCards     #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE RankNTypes      #-}
+{-# LANGUAGE RecordWildCards #-}
 
+-- |
+-- Module      : FirstLenses
+-- Description : Notes from "Lenses: Compositional Data Access and Manipulation"
+-- Maintainer  : henrytill@gmail.com
+-- Stability   : experimental
+--
+-- Notes from Simon Peyton Jones's presentation,
+--
+-- /"Lenses: Compositional Data Access and Manipulation"/,
+--
+-- given at __Haskell Exchange 2013__, 2013.09.10
+--
 module FirstLenses where
 
 -- * Motivation
-
--- $setup
--- >>> let addr = A { _road = "26 Bumblebee Ln", _city = "Manassis", _postcode = "02134"}
--- >>> let fred = P { _name = "Fred", _addr = addr, _salary = 100 }
 
 data Person
   = P { _name   :: String
@@ -22,49 +29,71 @@ data Address
       , _postcode :: String
       } deriving Show
 
+-- $setup
+-- >>> let addr = A { _road = "26 Bumblebee Ln", _city = "Manassis", _postcode = "02134"}
+-- >>> let fred = P { _name = "Fred", _addr = addr, _salary = 100 }
+
 -- $Why
 -- This sort of code gets __tiresome__ really fast:
 --
--- > setName :: String -> Person -> Person
--- > setName n p = p { name = n }
+-- @
+-- setName :: String -> Person -> Person
+-- setName n p = p { _name = n }
 --
--- > setPostcode :: String -> Person -> Person
--- > setPostcode pc p = p { addr = (addr p) { postcode = pc } }
+-- setPostcode :: String -> Person -> Person
+-- setPostcode pc p = p { _addr = (_addr p) { _postcode = pc } }
+-- @
 
 -- * Edward's Insight
 
--- $
--- One function to rule them all!
+-- ** One function to rule them all!
 
-type Lens' s a = forall f. Functor f => (a -> f a) -> s -> f s
+type Lens s t a b = forall f. Functor f => (a -> f b) -> s -> f t
+
+-- |
+-- Alternately,
+--
+-- > type Lens' s a = forall f. Functor f => (a -> f a) -> s -> f s
+--
+type Lens' s a = Lens s s a a
 
 -- $Want
 --
 -- A lens for each field:
 --
--- > lname   :: Lens' Person String
--- > laddr   :: Lens' Person Address
--- > lsalary :: Lens' Person Int
+-- @
+-- name     :: Lens' Person String
+-- addr     :: Lens' Person Address
+-- postcode :: Lens' Address String
+-- @
 --
 -- A way to use the lens to get and update:
 --
--- > view :: Lens' s a -> s -> a
--- > set  :: Lens' s a -> a -> s -> s
+-- @
+-- view :: Lens' s a -> s -> a
+-- set  :: Lens' s a -> a -> s -> s
+-- @
 --
 -- A way to compose lenses:
 --
--- > composeL :: Lens' s1 s2 -> Lens' s2 a -> Lens' s1 a
+-- @
+-- composeL :: Lens' s1 s2 -> Lens' s2 a -> Lens' s1 a
+-- @
 --
 -- If we had that...
 --
--- > setPostcode :: String -> Person -> Person
--- > setPostcode pc p = set (laddr `composeL` lpostcode) pc p
+-- @
+-- setPostcode :: String -> Person -> Person
+-- setPostcode pc p = set (addr `composeL` postcode) pc p
+-- @
 --
 
 -- | A type which is isomorphic to `Lens'`
 --
--- > lensToLensR :: Lens' s a -> LensR s a
--- > lensRToLens :: LensR s a -> Lens' s a
+-- @
+-- lensToLensR :: Lens' s a -> LensR s a
+-- lensRToLens :: LensR s a -> Lens' s a
+-- @
 data LensR s a
   = L { viewR :: s -> a
       , setR  :: a -> s -> s
@@ -78,8 +107,10 @@ instance Functor Identity where
 -- |
 -- Point-free translation:
 --
--- > set :: Lens' s a -> (a -> s -> s)
--- > set ln x = runIdentity . ln (Identity . const x)
+-- @
+-- set :: Lens' s a -> (a -> s -> s)
+-- set ln x = runIdentity . ln (Identity . const x)
+-- @
 --
 set :: Lens' s a -> (a -> s -> s)
 set ln x s = runIdentity (ln set_fld s)
@@ -98,8 +129,10 @@ instance Functor (Const v) where
 -- |
 -- Point-free translation:
 --
--- > view :: Lens' s a -> (s -> a)
--- > view ln = getConst . ln Const
+-- @
+-- view :: Lens' s a -> (s -> a)
+-- view ln = getConst . ln Const
+-- @
 --
 view :: Lens' s a -> s -> a
 view ln s = getConst (ln Const s)
