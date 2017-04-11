@@ -53,7 +53,9 @@ type Lens s t a b = forall f. Functor f => (a -> f b) -> s -> f t
 -- |
 -- Alternately,
 --
--- > type Lens' s a = forall f. Functor f => (a -> f a) -> s -> f s
+-- @
+-- type Lens' s a = forall f. Functor f => (a -> f a) -> s -> f s
+-- @
 --
 type Lens' s a = Lens s s a a
 
@@ -108,14 +110,14 @@ instance Functor Identity where
 -- Point-free translation:
 --
 -- @
--- set :: Lens' s a -> (a -> s -> s)
+-- set :: Lens' s a -> a -> s -> s
 -- set ln x = runIdentity . ln (Identity . const x)
 -- @
 --
-set :: Lens' s a -> (a -> s -> s)
-set ln x s = runIdentity (ln set_fld s)
+set :: Lens' s a -> a -> s -> s
+set ln x s = runIdentity (ln setField s)
   where
-    set_fld _ = Identity x
+    setField _ = Identity x
 
 over :: Lens' s a -> (a -> a) -> s -> s
 over ln f = runIdentity . ln (Identity . f)
@@ -130,7 +132,7 @@ instance Functor (Const v) where
 -- Point-free translation:
 --
 -- @
--- view :: Lens' s a -> (s -> a)
+-- view :: Lens' s a -> s -> a
 -- view ln = getConst . ln Const
 -- @
 --
@@ -152,7 +154,7 @@ lensRToLens L{..} f s = (\a -> setR a s) <$> (f (viewR s))
 -- P {_name = "Bill", _addr = A {_road = "26 Bumblebee Ln", _city = "Manassis", _postcode = "02134"}, _salary = 100}
 --
 name :: Lens' Person String
-name elt_fn (P n a s) = (\n' -> P n' a s) <$> (elt_fn n)
+name eltFn (P n a s) = (\n' -> P n' a s) <$> (eltFn n)
 
 -- * How on earth does this work?
 
@@ -171,14 +173,14 @@ name elt_fn (P n a s) = (\n' -> P n' a s) <$> (elt_fn n)
 -- * Composing and using lenses
 
 address :: Lens' Person Address
-address elt_fn (P n a s) = (\a' -> P n a' s) <$> (elt_fn a)
+address eltFn (P n a s) = (\a' -> P n a' s) <$> (eltFn a)
 
 -- |
 -- >>> view (address . postcode) fred
 -- "02134"
 --
 postcode :: Lens' Address String
-postcode elt_fn (A r c p) = (\p' -> A r c p') <$> (elt_fn p)
+postcode eltFn (A r c p) = (\p' -> A r c p') <$> (eltFn p)
 
 -- |
 -- >>> setPostcode "55555" fred
@@ -195,4 +197,4 @@ setPostcode = set (address . postcode)
 type Traversal' s a = forall f. Applicative f => (a -> f a) -> s -> f s
 
 roadAndCity :: Traversal' Address String
-roadAndCity elt_fn (A r c p) = (\r' c' -> A r' c' p) <$> elt_fn r <*> elt_fn c
+roadAndCity eltFn (A r c p) = (\r' c' -> A r' c' p) <$> eltFn r <*> eltFn c
