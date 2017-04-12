@@ -197,6 +197,8 @@ tails = (Cons (Nil, Nil), op)
 
 -- * 3. Algebraic data types
 
+-- $algebraic
+--
 -- @
 -- In order to define the notions of cata-, ana-, hylo-, and paramorphism for
 -- arbitrary datatypes, we now present a generic theory of data types and
@@ -218,4 +220,3 @@ tails = (Cons (Nil, Nil), op)
 -- *** Lifting
 
 -- *** Sectioning
-
