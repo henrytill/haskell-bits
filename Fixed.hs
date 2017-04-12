@@ -1,5 +1,5 @@
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE DeriveFunctor        #-}
+{-# LANGUAGE StandaloneDeriving   #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Fixed where
@@ -7,8 +7,8 @@ module Fixed where
 -- | the least fixpoint of functor f
 newtype Fix f = Fix { unFix :: f (Fix f) }
 
-deriving instance Eq (f (Fix f))   => Eq (Fix f)
-deriving instance Ord (f (Fix f))  => Ord (Fix f)
+deriving instance   Eq (f (Fix f)) =>   Eq (Fix f)
+deriving instance  Ord (f (Fix f)) =>  Ord (Fix f)
 deriving instance Show (f (Fix f)) => Show (Fix f)
 
 data ListF a r
