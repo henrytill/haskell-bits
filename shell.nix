@@ -1,7 +1,7 @@
 { nixpkgs ? import <nixpkgs> {} }:
 let
   inherit (nixpkgs) pkgs;
-  ghc = pkgs.haskellPackages.ghcWithPackages (ps: with ps; [
+  ghc = pkgs.haskellPackages.ghcWithHoogle (ps: with ps; [
           doctest
           mtl
           random
