@@ -216,7 +216,9 @@ unfoldL p f g b = if p b
                     else Cons (f b) (unfoldL p f g (g b))
 
 -- *** Exercise 3.6
--- $ Express `unfoldL` in terms of `unfoldL'`, and vice versa
+
+-- $
+-- Express `unfoldL` in terms of `unfoldL'`, and vice versa
 
 unfoldL1
   :: forall a b
@@ -429,3 +431,118 @@ bsort' = unfoldL' b
     b xs = case bubble' xs of
              (Cons y ys) -> Just (y, ys)
              Nil         -> Nothing
+
+-- *** Exercise 3.13
+
+-- |
+-- >>> let z = Cons 1 (Cons 2 (Cons 4 Nil))
+-- >>> insertWithUnfold 3 z
+-- Cons 1 (Cons 2 (Cons 3 (Cons 4 Nil)))
+--
+insertWithUnfold :: Ord a => a -> List a -> List a
+insertWithUnfold x xs = unfoldL' inserter (Just x, xs)
+  where
+    inserter (Just i,  Cons y ys)
+      | i < y                     = Just (i, (Nothing, Cons y ys))
+      | otherwise                 = Just (y, (Just i,  ys))
+    inserter (Nothing, Cons y ys) = Just (y, (Nothing, ys))
+    inserter (Just i,  Nil)       = Just (i, (Nothing, Nil))
+    inserter (Nothing, Nil)       = Nothing
+
+-- *** Exercise 3.14
+
+-- $
+-- `insertWithUnfold` is a bit unsatisfactory, because once the correct position
+-- is found at which to insert the element, the remainder of the list must still
+-- be copied item by item.
+--
+-- The direct recursive definition did not have this problem: one branch shares
+-- the remainder of the original list without making a recursive call.
+--
+-- This general pattern can be captured as another recursion operator, known as
+-- an /apomorphism/.
+
+-- | A function for apomorphisms.  For non-empty lists, the generation function
+-- `f` yields `Either` a new seed, on which a recursive call is made, or a
+-- complete list, which is used directly.
+apoL' :: (b -> Maybe (a, Either b (List a))) -> b -> List a
+apoL' f u = case f u of
+              Nothing            -> Nil
+              Just (x, Left v)   -> Cons x (apoL' f v)
+              Just (x, Right xs) -> Cons x xs
+
+-- | `insert` as an instance of `apoL'`.
+--
+-- >>> let z = Cons 1 (Cons 2 (Cons 4 Nil))
+-- >>> insertWithApo 3 z
+-- Cons 1 (Cons 2 (Cons 3 (Cons 4 Nil)))
+--
+insertWithApo :: forall a. Ord a => a -> List a -> List a
+insertWithApo x xs = apoL' apper xs
+  where
+    apper :: (List a -> Maybe (a, Either (List a) (List a)))
+    apper (Cons y ys)
+      | y < x         = Just (y, Left ys)
+      | otherwise     = Just (x, Right (Cons y ys))
+    apper Nil         = Nothing
+
+-- ** Hylomorphisms
+
+-- $
+-- Unfolds generate data structures, and folds consume them; it is natural to
+-- compose these two operations.
+--
+-- The pattern of computation consisting of an unfold followed by a fold is a
+-- fairly common one.  Such compositions are called /hylomorphisms/.
+--
+-- A simple example of a hylomorphism is given by the factorial function:
+
+-- |
+-- >>> fact 5
+-- 120
+--
+fact :: Integer -> Integer
+fact = foldL (*) 1 . unfoldL (== 0) id pred
+
+-- $
+-- More elaborate examples of hylomorphisms (on trees) are provided by
+-- traditional compilers, which may be thought of as constructing an abstract
+-- syntax tree (unfolding to the tree type) from which to generate code (folding
+-- the abstract syntax tree).
+
+hyloL
+  :: (a -> c -> c)
+  -> c
+  -> (b -> Bool)
+  -> (b -> a)
+  -> (b -> b)
+  -> b
+  -> c
+hyloL f e p g h = foldL f e . unfoldL p g h
+
+-- |
+-- >>> fact' 5
+-- 120
+--
+fact' :: Integer -> Integer
+fact' = hyloL (*) 1 (== 0) id pred
+
+hyloLFused
+  :: (a -> c -> c)
+  -> c
+  -> (b -> Bool)
+  -> (b -> a)
+  -> (b -> b)
+  -> b
+  -> c
+hyloLFused f e p g h b =
+  if p b
+  then e
+  else f (g b) (hyloLFused f e p g h (h b))
+
+-- |
+-- >>> factFused 5
+-- 120
+--
+factFused :: Integer -> Integer
+factFused = hyloL (*) 1 (== 0) id pred
