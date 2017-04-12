@@ -1,5 +1,6 @@
-{-# LANGUAGE RankNTypes      #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RankNTypes          #-}
+{-# LANGUAGE RecordWildCards     #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- |
 -- Module      : FirstLenses
@@ -114,9 +115,10 @@ instance Functor Identity where
 -- set ln x = runIdentity . ln (Identity . const x)
 -- @
 --
-set :: Lens' s a -> a -> s -> s
+set :: forall s a. Lens' s a -> a -> s -> s
 set ln x s = runIdentity (ln setField s)
   where
+    setField :: a -> Identity a
     setField _ = Identity x
 
 over :: Lens' s a -> (a -> a) -> s -> s
