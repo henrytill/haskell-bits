@@ -173,8 +173,9 @@ fac = ((1, (*)), (g, p))
 -- and keeps it too", as exemplified by the factorial function.
 -- @
 
-type Para a b = (b, a -> b -> b)
+type Para a b c = (b, a -> c -> b)
 
+numPara :: (Eq a, Num a) => Para a b b -> a -> b
 numPara   (b, op) 0 = b
 numPara h@(b, op) n = (n - 1) `op` (numPara h (n - 1))
 
@@ -185,6 +186,7 @@ numPara h@(b, op) n = (n - 1) `op` (numPara h (n - 1))
 fac' = (1, op)
   where n `op` m = (1 + n) * m
 
+listPara :: Para a b (List a, b) -> List a -> b
 listPara   (b, op) Nil            = b
 listPara h@(b, op) (Cons (a, as)) = a `op` (as, listPara h as)
 
