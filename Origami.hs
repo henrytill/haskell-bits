@@ -12,6 +12,7 @@
 module Origami where
 
 import Data.Maybe (isNothing)
+import Prelude hiding (zip)
 
 -- * Origami with lists: sorting
 
@@ -85,6 +86,7 @@ concatL = foldL appendL Nil
 -- *** Exercise 3.3
 
 -- $
+--
 -- >>> foldL (+) 0 . mapL (*5) $ x
 -- 30
 -- >>> foldL ((+) . (*5)) 0 $ x
@@ -141,6 +143,20 @@ paraL :: (a -> (List a, b) -> b) -> b -> List a -> b
 paraL _ e Nil         = e
 paraL f e (Cons x xs) = f x (xs, paraL f e xs)
 
+-- | The paramorphism operator for numbers
+paraN :: (Eq a, Num a) => (a -> b -> b) -> b -> a -> b
+paraN _  b 0 = b
+paraN op b n = (n - 1) `op` (paraN op b (n - 1))
+
+-- | Factorial defined using `paraN`
+-- >>> factorial 5
+-- 120
+--
+factorial :: (Num a, Eq a) => a -> a
+factorial x = paraN op 1 x
+  where
+    n `op` m = (1 + n) * m
+
 -- |
 -- >>> let z = Cons 1 (Cons 2 (Cons 4 Nil))
 -- >>> insert2 3 z
@@ -157,12 +173,30 @@ insert2 y = paraL f (wrap y)
 
 -- $
 -- The dual of folding is unfolding
+--
+-- The Haskell standard library defines the follwoing function for generating
+-- lists:
+--
+-- > unfoldr :: (b -> Maybe (a, b)) -> b -> [a]
+--
 
--- | An implementation of `unfoldr` for our `List` datatype
+-- | An equivalent implementation of `unfoldr` for our `List` datatype
 unfoldL' :: (b -> Maybe (a, b)) -> b -> List a
 unfoldL' f u = case f u of
                  Nothing     -> Nil
                  Just (x, v) -> Cons x (unfoldL' f v)
+
+-- | `zip` in terms of `unfoldL'`
+--
+-- >>> zip (x, y)
+-- Cons (1,4) (Cons (2,5) (Cons (3,6) Nil))
+--
+zip :: forall a b. (List a, List b) -> List (a, b)
+zip = unfoldL' f
+  where
+    f :: (List a, List b) -> Maybe ((a, b), (List a, List b))
+    f (Cons x xs, Cons y ys) = Just ((x, y), (xs, ys))
+    f _                      = Nothing
 
 -- $
 -- =Note:
@@ -222,10 +256,16 @@ foldL' :: (Maybe (a, b) -> b) -> List a -> b
 foldL' f Nil         = f Nothing
 foldL' f (Cons x xs) = f (Just (x, foldL' f xs))
 
--- *** Exercise 3.8
--- $ Define `foldL'` in terms of `foldL`, and vice versa.
+-- $
+-- These primed versions make the duality between the fold and the unfold very
+-- clear, although they sometimes be less convenient for programming with.
 
--- foldL :: (a -> b -> b) -> b -> List a -> b
+-- *** Exercise 3.8
+
+-- $
+-- Define `foldL'` in terms of `foldL`, and vice versa.
+--
+-- > foldL :: (a -> b -> b) -> b -> List a -> b
 
 foldL1 :: forall a b. (Maybe (a, b) -> b) -> List a -> b
 foldL1 f = foldL translator zero
@@ -242,7 +282,9 @@ foldL2 f zero = foldL' translator
     translator Nothing       = zero
 
 -- *** Exercise 3.9
--- $ The adaptation of the single-argument fold and unfold to the multi-argument
+
+-- $
+-- The adaptation of the single-argument fold and unfold to the multi-argument
 -- interface is simplified by functions of the following types:
 
 foldLargs :: forall a b. (a -> b -> b) -> b -> (Maybe (a, b) -> b)
@@ -268,22 +310,34 @@ unfoldLargs p f g = translator
 -- One sorting algorithm expressible as a list unfold is /selection sort/, which
 -- operates by at each step removing the minimum element of the list to be
 -- sorted, but leaving the other elements in the same order.  We first define
--- the function /delmin/  to do this removal:
+-- the function /delmin/ to do this removal:
 
+-- |
+-- >>> delmin (Cons 6 (Cons 1 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil))))))
+-- Just (1,Cons 6 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil)))))
+--
 delmin :: Ord a => List a -> Maybe (a, List a)
 delmin Nil = Nothing
 delmin xs  = Just (y, deleteL y xs)
   where
     y = minimumL xs
 
--- $
--- `minimumL` and `deleteL` are `List` equivalents of the standard library
--- functions `minimum` and `delete`:
-
+-- | `minimumL` is the `List` equivalent of the standard library function
+-- `minimum`
+--
+-- >>> minimumL (Cons 6 (Cons 1 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil))))))
+-- 1
+--
 minimumL :: Ord a => List a -> a
 minimumL Nil         = error "minimumL Nil"
 minimumL (Cons x xs) = foldL min x xs
 
+-- | `deleteL` is the `List` equivalent of the standard library function
+-- `delete`
+--
+-- >>> deleteL 6 (Cons 6 (Cons 1 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil))))))
+-- Cons 1 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil))))
+--
 deleteL :: Eq a => a -> List a -> List a
 deleteL _ Nil         = Nil
 deleteL y (Cons x xs)
@@ -299,3 +353,79 @@ deleteL y (Cons x xs)
 --
 ssort :: Ord a => List a -> List a
 ssort = unfoldL' delmin
+
+-- *** Exercise 3.10
+
+-- | A redefinition of `deleteL` in terms of `paraL`
+--
+-- >>> deleteL' 6 (Cons 6 (Cons 1 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil))))))
+-- Cons 1 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil))))
+-- >>> deleteL' 5 (Cons 6 (Cons 1 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil))))))
+-- Cons 6 (Cons 1 (Cons 2 (Cons 4 (Cons 3 Nil))))
+--
+deleteL' :: Eq a => a -> List a -> List a
+deleteL' y = paraL f (wrap y)
+  where
+    f x (xs, acc)
+      | y == x    = xs
+      | otherwise = Cons x acc
+
+-- *** Exercise 3.11
+
+-- | A redefinition of `delmin` in terms of `paraL`
+--
+-- >>> delmin' (Cons 6 (Cons 1 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil))))))
+-- Just (1,Cons 6 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil)))))
+-- >>> delmin' (Cons 7 (Cons 8 (Cons 9 (Cons 10 (Cons 11 (Cons 12 Nil))))))
+-- Just (7,Cons 8 (Cons 9 (Cons 10 (Cons 11 (Cons 12 Nil)))))
+--
+delmin' :: forall a. Ord a => List a -> Maybe (a, List a)
+delmin' = paraL f Nothing
+  where
+    f :: a -> (List a, Maybe (a, List a)) -> Maybe (a, List a)
+    f x (xs, Nothing)                   = Just (x, xs)
+    f x (xs, Just (m, acc)) | x < m     = Just (x, xs)
+                            | otherwise = Just (m, Cons x acc)
+
+-- | `bubble` has the same type as `delmin`, but it does not preserve the
+-- relative order of remaining list elements.  This means that it is possible to
+-- define `bubble` as a fold.
+--
+bubble :: Ord a => List a -> Maybe (a, List a)
+bubble = foldL step Nothing
+  where
+    step x Nothing        = Just (x, Nil)
+    step x (Just (y, ys))
+      | x < y             = Just (x, Cons y ys)
+      | otherwise         = Just (y, Cons x ys)
+
+-- |
+-- >>> bsort (Cons 6 (Cons 1 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil))))))
+-- Cons 1 (Cons 2 (Cons 3 (Cons 4 (Cons 5 (Cons 6 Nil)))))
+--
+bsort :: Ord a => List a -> List a
+bsort = unfoldL' bubble
+
+-- *** Exercise 3.12
+
+-- | An alternate version of `bubble` that returns a `List` with the minimum
+-- element "bubbled" to the top
+--
+bubble' :: Ord a => List a -> List a
+bubble' = foldL f Nil
+  where
+    f x Nil         = Cons x Nil
+    f x (Cons m xs)
+      | x < m       = Cons x (Cons m xs)
+      | otherwise   = Cons m (Cons x xs)
+
+-- |
+-- >>> bsort' (Cons 6 (Cons 1 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil))))))
+-- Cons 1 (Cons 2 (Cons 3 (Cons 4 (Cons 5 (Cons 6 Nil)))))
+--
+bsort' :: Ord a => List a -> List a
+bsort' = unfoldL' b
+  where
+    b xs = case bubble' xs of
+             (Cons y ys) -> Just (y, ys)
+             Nil         -> Nothing
