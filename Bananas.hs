@@ -1,5 +1,5 @@
 -- |
--- Module      : BananasLensesEnvelopesBarbedWire
+-- Module      : Bananas
 -- Description : Functional Programming with Bananas, Lenses, Envelopes and Barbed Wire
 -- Maintainer  : henrytill@gmail.com
 -- Stability   : experimental
@@ -18,7 +18,7 @@
 --
 --     * <http://blog.ezyang.com/2010/05/bananas-lenses-envelopes-and-barbed-wire-a-translation-guide/>
 --
-module BananasLensesEnvelopesBarbedWire where
+module Bananas where
 
 import Prelude hiding (length, filter, zip, iterate, map, (||))
 
