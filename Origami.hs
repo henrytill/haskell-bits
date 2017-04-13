@@ -276,12 +276,8 @@ foldL1 f = foldL translator zero
     translator a b = f (Just (a, b))
     zero           = f Nothing
 
-foldL2 :: forall a b. (a -> b -> b) -> b -> List a -> b
-foldL2 f zero = foldL' translator
-  where
-    translator :: Maybe (a, b) -> b
-    translator (Just (a, b)) = f a b
-    translator Nothing       = zero
+foldL2 :: (a -> b -> b) -> b -> List a -> b
+foldL2 f zero = foldL' (maybe zero (\ (a, b) -> f a b))
 
 -- *** Exercise 3.9
 
@@ -546,3 +542,122 @@ hyloLFused f e p g h b =
 --
 factFused :: Integer -> Integer
 factFused = hyloL (*) 1 (== 0) id pred
+
+-- *** Exercise 3.15
+
+type Binary = List Bool
+
+decimalStringToBinary :: String -> Binary
+decimalStringToBinary = undefined
+
+-- * Origami by numbers: loops
+
+data Nat = Zero | Succ Nat deriving Show
+
+-- ** Folds for naturals
+
+foldN :: a -> (a -> a) -> Nat -> a
+foldN z _ Zero     = z
+foldN z s (Succ n) = s (foldN z s n)
+
+-- $
+-- If we reverse the order of the three arguments, we see that `foldN` is in
+-- fact and old friend...
+
+-- | A higher-order function that applies a given function of type @a -> a@ a
+-- given number of times
+--
+iter :: Nat -> (a -> a) -> a -> a
+iter n f x = foldN x f n
+
+-- *** Exercise 3.16
+
+-- | The single-argument version of foldN
+foldN' :: (Maybe a -> a) -> Nat -> a
+foldN' f Zero     = f Nothing
+foldN' f (Succ n) = f (Just (foldN' f n))
+
+-- | `foldN'` in terms of `foldN`
+foldN1 :: (Maybe a -> a) -> Nat -> a
+foldN1 f ns = foldN (f Nothing) (f . Just) ns
+
+-- | `foldN` in terms of `foldN'`
+foldN2 :: a -> (a -> a) -> Nat -> a
+foldN2 z s = foldN' (maybe z s)
+
+-- *** Exercise 3.18
+
+-- |
+-- >>> addN (Succ Zero) (Succ (Succ Zero))
+-- Succ (Succ (Succ Zero))
+--
+addN :: Nat -> Nat -> Nat
+addN m = foldN m Succ
+
+-- |
+-- >>> mulN (Succ (Succ (Succ Zero))) (Succ (Succ Zero))
+-- Succ (Succ (Succ (Succ (Succ (Succ Zero)))))
+--
+mulN :: Nat -> Nat -> Nat
+mulN m = foldN Zero (addN m)
+
+-- |
+-- >>> powN (Succ (Succ (Succ Zero))) (Succ (Succ Zero))
+-- Succ (Succ (Succ (Succ (Succ (Succ (Succ (Succ (Succ Zero))))))))
+--
+powN :: Nat -> Nat -> Nat
+powN m = foldN (Succ Zero) (mulN m)
+
+-- *** Exercise 3.19
+
+predN :: Nat -> Maybe Nat
+predN Zero     = Nothing
+predN (Succ n) = Just n
+
+-- | `predN` in terms of `foldN`
+--
+-- >>> predN' (Succ (Succ (Succ Zero)))
+-- Just (Succ (Succ Zero))
+-- >>> predN' Zero
+-- Nothing
+--
+predN' :: Nat -> Maybe Nat
+predN' = foldN Nothing f
+  where
+    f Nothing  = Just Zero
+    f (Just n) = Just (Succ n)
+
+-- *** Exercise 3.20
+
+-- |
+-- >>> subN (Succ (Succ (Succ Zero))) (Succ (Succ Zero))
+-- Just (Succ Zero)
+--
+subN :: Nat -> Nat -> Maybe Nat
+subN m = foldN (Just m) ((=<<) predN)
+
+-- |
+-- >>> eqN (Succ (Succ (Succ Zero))) (Succ (Succ Zero))
+-- False
+-- >>> eqN (Succ (Succ (Succ Zero))) (Succ (Succ (Succ Zero)))
+-- True
+--
+eqN :: Nat -> Nat -> Bool
+eqN (Succ m) (Succ n) = eqN m n
+eqN Zero     (Succ _) = False
+eqN (Succ _) Zero     = False
+eqN Zero     Zero     = True
+
+-- |
+-- >>> lessN (Succ (Succ (Succ Zero))) (Succ (Succ Zero))
+-- False
+-- >>> lessN (Succ (Succ Zero)) (Succ (Succ Zero))
+-- False
+-- >>> lessN (Succ Zero) (Succ (Succ (Succ Zero)))
+-- True
+--
+lessN :: Nat -> Nat -> Bool
+lessN (Succ m) (Succ n) = lessN m n
+lessN Zero     (Succ _) = True
+lessN (Succ _) Zero     = False
+lessN Zero     Zero     = False
