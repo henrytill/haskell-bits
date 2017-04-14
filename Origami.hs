@@ -554,6 +554,14 @@ decimalStringToBinary = undefined
 
 data Nat = Zero | Succ Nat deriving Show
 
+intToNat :: Int -> Nat
+intToNat 0 = Zero
+intToNat x = Succ (intToNat (x - 1))
+
+natToInt :: Nat -> Int
+natToInt Zero     = 0
+natToInt (Succ n) = 1 + natToInt n
+
 -- ** Folds for naturals
 
 foldN :: a -> (a -> a) -> Nat -> a
@@ -644,8 +652,8 @@ subN m = foldN (Just m) ((=<<) predN)
 --
 eqN :: Nat -> Nat -> Bool
 eqN (Succ m) (Succ n) = eqN m n
-eqN Zero     (Succ _) = False
 eqN (Succ _) Zero     = False
+eqN Zero     (Succ _) = False
 eqN Zero     Zero     = True
 
 -- |
@@ -658,6 +666,234 @@ eqN Zero     Zero     = True
 --
 lessN :: Nat -> Nat -> Bool
 lessN (Succ m) (Succ n) = lessN m n
-lessN Zero     (Succ _) = True
 lessN (Succ _) Zero     = False
+lessN Zero     (Succ _) = True
 lessN Zero     Zero     = False
+
+-- ** Unfolds for naturals
+
+unfoldN' :: (a -> Maybe a) -> a -> Nat
+unfoldN' f x = case f x of
+                 Nothing -> Zero
+                 Just y  -> Succ (unfoldN' f y)
+
+-- | A version of `unfoldN'` which splits the single argument into simpler
+-- components.
+--
+-- Here we find another old friend: this is the minimisation function form
+-- recursive function theory, which takes a predicate @p@, a function @f@ and a
+-- value @x@, and computer the least number @n@ such that @p (iter n f x)@
+-- holds.
+--
+unfoldN :: (a -> Bool) -> (a -> a) -> a -> Nat
+unfoldN p f x = if p x then Zero else Succ (unfoldN p f (f x))
+
+-- *** Exercise 3.21
+
+unfoldN1 :: forall a. (a -> Maybe a) -> a -> Nat
+unfoldN1 f = unfoldN p g
+  where
+    p :: a -> Bool
+    p = isNothing . f
+
+    g :: a -> a
+    g x = case f x of
+            Just a  -> a
+            Nothing -> error "something is wrong"
+
+unfoldN2 :: forall a. (a -> Bool) -> (a -> a) -> a -> Nat
+unfoldN2 p f = unfoldN' translator
+  where
+    translator :: a -> Maybe a
+    translator x | p x       = Nothing
+                 | otherwise = Just (f x)
+
+-- *** Exercise 3.23
+
+-- |
+-- >>> let eight = Succ (Succ (Succ (Succ (Succ (Succ (Succ (Succ Zero)))))))
+-- >>> let two   = Succ (Succ Zero)
+-- >>> divN eight two
+-- Succ (Succ (Succ (Succ Zero)))
+--
+divN :: Nat -> Nat -> Nat
+divN m n = unfoldN' f m
+  where
+    f :: Nat -> Maybe Nat
+    f x@(Succ _) = subN x n
+    f Zero       = Nothing
+
+-- *** Exercise 3.24
+
+logN :: Nat -> Nat
+logN = undefined
+
+-- ** Beyond primtive recursion
+
+untilN :: (a -> Bool) -> (a -> a) -> a -> a
+untilN p f x = foldN x f (unfoldN p f x)
+
+-- $
+-- At first sight, this appears somewhat different than the prelude's
+-- definition:
+--
+-- > until :: (a -> Bool) -> (a -> a) -> a -> a
+-- > until p f x = if p x then x else until p f (f x)
+--
+-- Our definition first computes the number of iterations that will be required
+-- and the iterates the loop body that many times; the prelude's definition uses
+-- but a single loop.  Nevertheless, the prelude's definition arises by
+-- deforesting the number of iterations - at least for strict @f@.
+
+-- *** Exercise 3.25
+
+hyloN' :: (Maybe a -> a) -> (a -> Maybe a) -> a -> a
+hyloN' f g = foldN' f . unfoldN' g
+
+hyloN :: (Maybe a -> a) -> (a -> Maybe a) -> a -> a
+hyloN f g x = case g x of
+                Nothing -> x
+                Just y  -> hyloN f g (f (Just y))
+
+-- * Origami with trees: traversals
+
+data Rose a   = Node a (Forest a) deriving Show
+type Forest a = List (Rose a)
+
+-- ** Folds for trees and forests
+
+-- $
+-- Since the types of trees and forests are mutually recursive, it seems
+-- "sweetly reasonable" that the folds too should be mutually recursive.
+
+-- |
+-- >>> let t = Node 42 (Cons (Node 43 Nil) (Cons (Node 44 Nil) (Cons (Node 45 Nil) Nil)))
+-- >>> let plus1 = \ a g -> Node (a + 1) g
+-- >>> foldR plus1 id t
+-- Node 43 (Cons (Node 44 Nil) (Cons (Node 45 Nil) (Cons (Node 46 Nil) Nil)))
+--
+foldR :: (a -> g -> b) -> (List b -> g) -> Rose a -> b
+foldR f g (Node a ts) = f a (foldF f g ts)
+
+foldF :: (a -> g -> b) -> (List b -> g) -> Forest a -> g
+foldF f g ts = g (mapL (foldR f g) ts)
+
+-- *** Exercise 3.29
+
+-- |
+-- >>> let t = Node 42 (Cons (Node 43 Nil) (Cons (Node 44 Nil) (Cons (Node 45 Nil) Nil)))
+-- >>> let plus1 = \ a g -> Node (a + 1) g
+-- >>> foldRose plus1 t
+-- Node 43 (Cons (Node 44 Nil) (Cons (Node 45 Nil) (Cons (Node 46 Nil) Nil)))
+--
+foldRose :: (a -> List b -> b) -> Rose a -> b
+foldRose f (Node a ts) = f a (mapL (foldRose f) ts)
+
+-- | `foldRose` defined in terms of `foldR` and `foldF`
+--
+-- >>> let t = Node 42 (Cons (Node 43 Nil) (Cons (Node 44 Nil) (Cons (Node 45 Nil) Nil)))
+-- >>> let plus1 = \ a g -> Node (a + 1) g
+-- >>> foldRose1 plus1 t
+-- Node 43 (Cons (Node 44 Nil) (Cons (Node 45 Nil) (Cons (Node 46 Nil) Nil)))
+--
+foldRose1 :: (a -> List b -> b) -> Rose a -> b
+foldRose1 h = foldR h id
+
+-- | `foldR` defined in terms of `foldRose`
+--
+-- >>> let t = Node 42 (Cons (Node 43 Nil) (Cons (Node 44 Nil) (Cons (Node 45 Nil) Nil)))
+-- >>> let plus1 = \ a g -> Node (a + 1) g
+-- >>> foldR1 plus1 id t
+-- Node 43 (Cons (Node 44 Nil) (Cons (Node 45 Nil) (Cons (Node 46 Nil) Nil)))
+--
+foldR1 :: forall a g b. (a -> g -> b) -> (List b -> g) -> Rose a -> b
+foldR1 f g = foldRose h
+  where
+    h :: a -> List b -> b
+    h a bs = f a (g bs)
+
+-- ** Unfolds for trees and forests
+
+-- $
+-- Similarly, there is a mutually recursive pair of unfold functions, both
+-- taking the same functional arguments.  In this case, the arguments generate
+-- from a seed a root label and a list of new seeds; the two unfolds frow from a
+-- seed a tree and a forest respectively.
+
+unfoldR :: (b -> a) -> (b -> List b) -> b -> Rose a
+unfoldR f g x = Node (f x) (unfoldF f g x)
+
+unfoldF :: (b -> a) -> (b -> List b) -> b -> Forest a
+unfoldF f g x = mapL (unfoldR f g) (g x)
+
+-- $
+-- For convenience in what follows, we define separate destructors for the root
+-- and the list of a children of a tree.
+
+root :: Rose a -> a
+root (Node a _) = a
+
+kids :: Rose a -> Forest a
+kids (Node _ ts) = ts
+
+-- ** Depth-first traversal
+
+-- $
+-- Because folds on trees and on forests are mutually recursive with the same
+-- functions as arguments, a commmon idiom when using them is to define the two
+-- simultaneously as a pair of functions.
+--
+-- For example, consider performing the depth-first traversal of a tree or a
+-- forest.  The traversal of a tree is one item longer than the traversal of its
+-- children; the traversal of a forest is obtained by concatenating the
+-- traversals of its trees.
+
+dft :: Rose   a -> List a
+dff :: Forest a -> List a
+(dft, dff) = (foldR f g, foldF f g)
+  where
+    f = Cons
+    g = concatL
+
+-- ** Breadth-first traversal
+
+-- $
+-- Depth-first traversal is in a sense the natural traversal on trees; in
+-- contrast, breadth-first traversal goes "against the grain".  We cannot define
+-- breadth-first traversal as a fold in the same way as we did for depth-first
+-- traversal, because it is not compositional - it is not possible to construct
+-- the traversal of a forest from the traversals of its trees.
+--
+-- The usual implementation of breadth-first traversal in an imperative langauge
+-- involves queues.  Queueing does not come naturally to functional programmers,
+-- although Okasaki has done a lot towards rectifying that situation.  In
+-- contrast, depth-first traversal is based on a stack, and stacks come for free
+-- with recursive programs.
+
+-- ** Level-order traversal
+
+-- $
+-- However, one can make some progress: one can compute the level-order
+-- traversal compositionally.  This yields not just a list, but a list of lists
+-- of elements, with one list for each level of the tree.
+
+levelt :: Rose   a -> List (List a)
+levelf :: Forest a -> List (List a)
+(levelt, levelf) = (foldR f g, foldF f g)
+  where
+    f x xss = Cons (wrap x) xss
+    g       = foldL (lzw appendL) Nil
+
+-- $
+-- The level-order traversal of a forest is obtained by gluing together the
+-- traversals of its trees; two lists of lists may be glued appropriately by
+-- concatenating corresponding elements.  This gluing is performed above by the
+-- function @lzw appendL@ (called @combine@ in IPFH).  The identifier @lzw@ here
+-- stands for "long zip with"; it is like the @zipWith@ function from the
+-- standard prelude, but returns a list whose length is the length of the longer
+-- argument, as opposed to that of the shorter one.
+
+lzw :: (a -> a -> a) -> List a -> List a -> List a
+lzw _ Nil         ys          = ys
+lzw _ xs          Nil         = xs
+lzw f (Cons x xs) (Cons y ys) = Cons (f x y) (lzw f xs ys)
