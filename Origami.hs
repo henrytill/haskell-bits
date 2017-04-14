@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -Wall #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 -- |
@@ -1013,4 +1014,29 @@ dropL m as = foldN as f m
     f Nil         = Nil
 
 
--- ** Radix sort
+-- |
+-- >>> let x = Cons 1 (Cons 2 (Cons 3 Nil))
+-- >>> let y = Cons 4 (Cons 5 (Cons 6 Nil))
+-- >>> let z = Cons 7 (Cons 8 (Cons 9 Nil))
+-- >>> let m = appendL x (appendL y z)
+-- >>> unravel (Succ (Succ (Succ Zero))) m
+-- Cons (Cons 1 (Cons 2 (Cons 3 Nil))) (Cons (Cons 4 (Cons 5 (Cons 6 Nil))) (Cons (Cons 7 (Cons 8 (Cons 9 Nil))) Nil))
+-- >>> ravel (unravel (Succ (Succ (Succ Zero))) m)
+-- Cons 1 (Cons 4 (Cons 7 (Cons 2 (Cons 5 (Cons 8 (Cons 3 (Cons 6 (Cons 9 Nil))))))))
+--
+unravel :: forall a. Nat -> List a -> List (List a)
+unravel _ Nil = Nil
+unravel m xs  = Cons (takeL m xs) (unravel m (dropL m xs))
+
+-- *** Exercise 3.43
+
+-- |
+-- >>> hsort (Succ (Succ (Succ Zero))) (Cons 9 (Cons 6 (Cons 1 (Cons 8 (Cons 5 (Cons 2 (Cons 7 (Cons 4 (Cons 3 Nil)))))))))
+-- Cons 1 (Cons 2 (Cons 3 (Cons 6 (Cons 5 (Cons 4 (Cons 9 (Cons 8 (Cons 7 Nil))))))))
+--
+hsort :: Ord a => Nat -> List a -> List a
+hsort n = ravel . (mapL isort) . (unravel n)
+
+shell :: Ord a => List Nat -> List a -> List a
+shell Nil         xs = xs
+shell (Cons n ns) xs = shell ns (hsort n xs)
