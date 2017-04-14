@@ -12,7 +12,7 @@
 module Origami where
 
 import Data.Maybe (isNothing)
-import Prelude hiding (zip)
+import Prelude hiding (repeat, zip)
 
 -- * Origami with lists: sorting
 
@@ -897,3 +897,120 @@ lzw :: (a -> a -> a) -> List a -> List a -> List a
 lzw _ Nil         ys          = ys
 lzw _ xs          Nil         = xs
 lzw f (Cons x xs) (Cons y ys) = Cons (f x y) (lzw f xs ys)
+
+-- *** Exercise 3.32
+
+-- | `lzw` as an `unfold`
+lzw' :: forall a. (a -> a -> a) -> List a -> List a -> List a
+lzw' f ls rs = unfoldL' ufer (ls, rs)
+  where
+    ufer :: (List a, List a) -> Maybe (a, (List a, List a))
+    ufer (Cons x xs, Cons y ys) = Just (f x y, (xs,  ys))
+    ufer (Nil,       Cons y ys) = Just (y,     (Nil, ys))
+    ufer (Cons x xs, Nil)       = Just (x,     (xs, Nil))
+    ufer (Nil,       Nil)       = Nothing
+
+-- *** Exercise 3.33
+
+-- | `lzw` in terms of `apoL'`
+lzwApo :: forall a. (a -> a -> a) -> List a -> List a -> List a
+lzwApo f ls rs = apoL' apoer (ls, rs)
+  where
+    apoer :: (List a, List a) -> Maybe (a, Either (List a, List a) (List a))
+    apoer (Cons x xs, Cons y ys) = Just (f x y, Left (xs,  ys))
+    apoer (Nil,       Cons y ys) = Just (y, Right ys)
+    apoer (Cons x xs, Nil)       = Just (x, Right xs)
+    apoer (Nil,       Nil)       = Nothing
+
+-- $
+-- Of course, having obtained the level-order traversal of a tree or a forest,
+-- it is straightforward to obtain the breadth-first traversal: simply
+-- concatenate the levels.
+
+bft :: Rose a -> List a
+bft = concatL . levelt
+
+bff :: Forest a -> List a
+bff = concatL . levelf
+
+-- ** Accumulating parameters
+
+-- $
+-- The native definitions of `levelt` and `levelf` are inefficient, because of
+-- the repeated list concatenations.  The standard accumulating parameter
+-- technique can be used here.  In each case, the accumulating parameter is a
+-- list of lists; the specifications of the two new functions are:
+
+levelt' :: Rose a -> List (List a) -> List (List a)
+levelt' t = lzw appendL (levelt t)
+
+levelf' :: Forest a -> List (List a) -> List (List a)
+levelf' ts = lzw appendL (levelf ts)
+
+-- ** Level-order traversal as an unfold
+
+-- $
+-- ...
+
+-- * Other sorts of origami
+
+-- ** Shell sort
+
+-- $
+-- Shell sort improves on insertion sort by allowing exchanges initially between
+-- distant elements.
+
+-- *** Exercise 3.41
+
+-- | `repeat` for `List`s
+repeat :: a -> List a
+repeat x = Cons x (repeat x)
+
+-- | Zippy application
+zapp :: List (a -> b) -> List a -> List b
+zapp (Cons f fs) (Cons x xs) = Cons (f x) (zapp fs xs)
+zapp _      _                = Nil
+
+-- | `List` transposition
+--
+-- I'M TIRED OF DEFINING EVERYTHING IN TERMS OF FOLDS AND UNFOLDS
+--
+-- >>> let x = Cons 1 (Cons 2 (Cons 3 Nil))
+-- >>> let y = Cons 4 (Cons 5 (Cons 6 Nil))
+-- >>> let z = Cons 7 (Cons 8 (Cons 9 Nil))
+-- >>> let m = Cons x (Cons y (Cons z Nil))
+-- >>> trans m
+-- Cons (Cons 1 (Cons 4 (Cons 7 Nil))) (Cons (Cons 2 (Cons 5 (Cons 8 Nil))) (Cons (Cons 3 (Cons 6 (Cons 9 Nil))) Nil))
+--
+trans :: forall a. List (List a) -> List (List a)
+trans Nil         = repeat Nil
+trans (Cons x xs) = repeat Cons `zapp` x `zapp` (trans xs)
+
+ravel :: List (List a) -> List a
+ravel = concatL . trans
+
+-- *** Exercise 3.42
+
+-- |
+-- >>> takeL (Succ (Succ Zero)) x
+-- Cons 1 (Cons 2 Nil)
+--
+takeL :: Nat -> List a -> List a
+takeL m as = unfoldL' f (m, as)
+  where
+    f (Zero,   _)         = Nothing
+    f (Succ _, Nil)       = Nothing
+    f (Succ n, Cons x xs) = Just (x, (n, xs))
+
+-- |
+-- >>> dropL (Succ (Succ Zero)) x
+-- Cons 3 Nil
+--
+dropL :: Nat -> List a -> List a
+dropL m as = foldN as f m
+  where
+    f (Cons _ xs) = xs
+    f Nil         = Nil
+
+
+-- ** Radix sort
