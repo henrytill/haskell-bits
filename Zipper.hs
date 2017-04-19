@@ -57,6 +57,7 @@ data Location a = Loc (Tree a) (Path a) deriving (Eq, Show)
 -- >>> goRight $ goRight $ goDown example
 -- Loc (Section [Item "c",Item "*",Item "d"]) (Node [Item "+",Section [Item "a",Item "*",Item "b"]] Top [])
 --
+goRight :: Location a -> Location a
 goRight (Loc t p) = case p of
   Top                    -> error "right of top"
   Node left up (r:right) -> Loc r (Node (t:left) up right)
@@ -66,6 +67,7 @@ goRight (Loc t p) = case p of
 -- >>> goLeft (goRight (goDown example)) == goDown example
 -- True
 --
+goLeft :: Location a -> Location a
 goLeft (Loc t p) = case p of
   Top                    -> error "left of top"
   Node (l:left) up right -> Loc l (Node left up (t:right))
@@ -79,6 +81,7 @@ goLeft (Loc t p) = case p of
 -- >>> goRight $ goDown $ goDown example
 -- Loc (Item "*") (Node [Item "a"] (Node [] Top [Item "+",Section [Item "c",Item "*",Item "d"]]) [Item "b"])
 --
+goDown :: Location a -> Location a
 goDown (Loc t p) = case t of
   Item _             -> error "down of item"
   Section (t1:trees) -> Loc t1 (Node [] p trees)
@@ -88,6 +91,7 @@ goDown (Loc t p) = case t of
 -- >>> goUp (goDown example) == example
 -- True
 --
+goUp :: Location a -> Location a
 goUp (Loc t p) = case p of
   Top                -> error "up of top"
   Node left up right -> Loc (Section (reverse left ++ (t:right))) up
