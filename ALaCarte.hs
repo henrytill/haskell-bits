@@ -18,7 +18,7 @@ module ALaCarte where
 -- >>> :set -XScopedTypeVariables
 -- >>> :set -XTypeOperators
 
--- * Fixing the expression problem
+-- * 2 Fixing the expression problem
 
 data Expr f = In (f (Expr f))
 
@@ -36,7 +36,7 @@ data (f :+: g) e = Inl (f e) | Inr (g e)
 addExample :: Expr (Val :+: Add)
 addExample = In (Inr (Add (In (Inl (Val 118))) (In (Inl (Val 1219)))))
 
--- * Evaluation
+-- * 3 Evaluation
 
 instance Functor Val where
   fmap _ (Val x) = Val x
@@ -71,7 +71,7 @@ instance (Eval f, Eval g) => Eval (f :+: g) where
 eval :: Eval f => Expr f -> Int
 eval expr = foldExpr evalAlgebra expr
 
--- * Automating injections
+-- * 4 Automating injections
 
 class (Functor sub, Functor sup) => sub :<: sup where
   inj :: sub a -> sup a
@@ -90,8 +90,8 @@ instance {-# OVERLAPPABLE #-}
 instance {-# OVERLAPPABLE #-}
   (Functor f, Functor g, Functor h, f :<: g) => f :<: (h :+: g) where
   inj         = Inr . inj
-  prj (Inr x) = prj x
   prj (Inl _) = Nothing
+  prj (Inr y) = prj y
 
 inject :: (g :<: f) => g (Expr f) -> Expr f
 inject = In . inj
@@ -109,7 +109,10 @@ add x y = inject (Add x y)
 -- 31337
 --
 
--- * Examples
+inVal :: Int -> Expr (Val :+: Val)
+inVal i = inject (Val i)
+
+-- * 5 Examples
 
 data Mul x = Mul x x
 
@@ -131,9 +134,11 @@ mul x y = inject (Mul x y)
 -- >>> eval y
 -- 42
 
+-- | Renders an expression to a string.
 class Render f where
   render :: Render g  => f (Expr g) -> String
 
+-- | Pretty-prints an expression.
 pretty :: Render f => Expr f -> String
 pretty (In t) = render t
 
@@ -171,3 +176,23 @@ distr t = do
   Add c d <- match b
   return (a `mul` c `add` a `mul` d)
 
+-- * 6 Monads for free
+
+data Term f a
+  = Pure a
+  | Impure (f (Term f a))
+
+instance Functor f => Functor (Term f) where
+  fmap f (Pure   x) = Pure   (f x)
+  fmap f (Impure t) = Impure (fmap (fmap f) t)
+
+instance Functor f => Applicative (Term f) where
+  pure                    = Pure
+  Pure   a  <*> Pure   b  = Pure   (a b)
+  Pure   a  <*> Impure mb = Impure (fmap a  <$> mb)
+  Impure ma <*> b         = Impure ((<*> b) <$> ma)
+
+instance Functor f => Monad (Term f) where
+  return x       = Pure x
+  Pure   x >>= f = f x
+  Impure t >>= f = Impure (fmap (>>= f) t)
