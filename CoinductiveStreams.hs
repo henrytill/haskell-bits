@@ -1,4 +1,5 @@
-{-# LANGUAGE GADTs, RankNTypes   #-}
+{-# LANGUAGE GADTs      #-}
+{-# LANGUAGE RankNTypes #-}
 
 -- |
 -- Copattern/coinductive Programming in Haskell

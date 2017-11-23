@@ -162,6 +162,11 @@ name eltFn (P n a s) = (\n' -> P n' a s) <$> (eltFn n)
 
 -- $
 --
+-- > set name "Bill" fred
+-- > runIdentity (name (\_ -> Identity "Bill") (P {_name = "Fred", _addr = ..., _salary = 100})) -- inline set
+-- > runIdentity (fmap (\n' -> P n' A{...} 100) ((\_ -> Identity "Bill") "Fred"))                -- inline name
+-- > P {_name = "Bill", _addr = A {_road = "26 Bumblebee Ln", _city = "Manassis", _postcode = "02134"}, _salary = 100}
+--
 -- > view name (P {_name = "Fred", _addr = ..., _salary = 100})
 -- > getConst (name Const (P {_name = "Fred", _addr = ..., _salary = 100})) -- inline view
 -- > getConst (fmap (\n' -> P n' A{...} 100) (Const "Fred"))                -- inline name

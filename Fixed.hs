@@ -17,7 +17,7 @@ data ListF a r
   deriving (Eq, Show)
 
 instance Functor (ListF a) where
-  fmap f N        = N
+  fmap _ N        = N
   fmap f (C x xs) = C x (f xs)
 
 data NatF r
@@ -30,5 +30,8 @@ cata alg = alg . fmap (cata alg) . unFix
 
 type List a = Fix (ListF a)
 
+cons :: a -> Fix (ListF a) -> Fix (ListF a)
 cons x xs = Fix (C x xs)
-nil       = Fix N
+
+nil :: Fix (ListF a)
+nil = Fix N

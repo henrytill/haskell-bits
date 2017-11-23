@@ -1,5 +1,5 @@
-{-# OPTIONS_GHC -Wall #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# OPTIONS_GHC -Wall            #-}
+{-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 -- |
@@ -163,9 +163,10 @@ factorial x = paraN op 1 x
 -- >>> insert2 3 z
 -- Cons 1 (Cons 2 (Cons 3 (Cons 4 Nil)))
 --
-insert2 :: Ord a => a -> List a -> List a
+insert2 :: forall a. Ord a => a -> List a -> List a
 insert2 y = paraL f (wrap y)
   where
+    f :: a -> (List a, List a) -> List a
     f x (xs, acc)
       | y < x     = Cons y (Cons x xs)
       | otherwise = Cons x acc
