@@ -32,7 +32,6 @@ type IntExpr = Expr Val
 data Add e = Add e e
 type AddExpr = Expr Add
 
-
 -- | The coproduct of two signatures.  Used for combining expressions.
 infixr 6 :+:
 data (f :+: g) e = Inl (f e) | Inr (g e)
@@ -174,6 +173,7 @@ match (In t) = prj t
 -- >>> let Just y = distr x
 -- >>> pretty y
 -- "((80 * 5) + (80 * 4))"
+--
 distr :: (Add :<: f, Mul :<: f) => Expr f -> Maybe (Expr f)
 distr t = do
   Mul a b <- match t
