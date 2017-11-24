@@ -1,9 +1,9 @@
 {-# OPTIONS_GHC -Wall              #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE DeriveFunctor         #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeOperators         #-}
 -- |
 -- Module      : ALaCarte
 -- Description : Data types a la carte
@@ -14,6 +14,9 @@
 -- /Data types a la carte/.
 --
 module ALaCarte where
+
+import           Prelude hiding (getChar, putChar, readFile, writeFile)
+import qualified Prelude
 
 -- $setup
 -- >>> :set -XScopedTypeVariables
@@ -188,10 +191,10 @@ instance Functor f => Functor (Term f) where
   fmap f (Impure t) = Impure (fmap (fmap f) t)
 
 instance Functor f => Applicative (Term f) where
-  pure                    = Pure
-  Pure   a  <*> Pure   b  = Pure   (a b)
-  Pure   a  <*> Impure mb = Impure (fmap a  <$> mb)
-  Impure ma <*> b         = Impure ((<*> b) <$> ma)
+  pure                  = Pure
+  Pure   f <*> Pure   x = Pure   (f x)
+  Pure   f <*> Impure t = Impure (fmap (fmap f) t)
+  Impure t <*> x        = Impure (fmap (<*>  x) t)
 
 instance Functor f => Monad (Term f) where
   return x       = Pure x
@@ -199,15 +202,30 @@ instance Functor f => Monad (Term f) where
   Impure t >>= f = Impure (fmap (>>= f) t)
 
 data Zero    a           deriving Functor
-data One     a = One     deriving Functor
-data Const e a = Const e deriving Functor
+data One     a = One     deriving (Functor, Show)
+data Const e a = Const e deriving (Functor, Show)
 
+-- |
+-- >>> let (Pure x) = identExample
+-- >>> x
+-- 12
+--
 identExample :: Term Zero Int
 identExample = (*) <$> pure 3 <*> pure 4
 
+-- |
+-- >>> let (Impure x) = maybeExample
+-- >>> x
+-- One
+--
 maybeExample :: Term One Int
 maybeExample = (*) <$> pure 3 <*> Impure One
 
+-- |
+-- >>> let (Impure x) = errorExample
+-- >>> x
+-- Const "quux"
+--
 errorExample :: Term (Const String) Int
 errorExample = (*) <$> pure 3 <*> Impure (Const "quux")
 
@@ -254,3 +272,51 @@ run = foldTerm (,) runAlgebra
 -- $
 -- >>> run tick (Mem 4)
 -- (4,Mem 5)
+
+-- * 7 Applications
+
+data Teletype a
+  = GetChar (Char -> a)
+  | PutChar Char a
+  deriving Functor
+
+data FileSystem a
+  = ReadFile FilePath (String -> a)
+  | WriteFile FilePath String a
+  deriving Functor
+
+exec :: Exec f => Term f a -> IO a
+exec = foldTerm return execAlgebra
+
+class Functor f => Exec f where
+  execAlgebra :: f (IO a) -> IO a
+
+instance Exec Teletype where
+  execAlgebra (GetChar f)    = Prelude.getChar   >>= f
+  execAlgebra (PutChar c io) = Prelude.putChar c >>  io
+
+instance Exec FileSystem where
+  execAlgebra (ReadFile  fp g)     = Prelude.readFile  fp     >>= g
+  execAlgebra (WriteFile fp str x) = Prelude.writeFile fp str >>  x
+
+instance (Exec f, Exec g) => Exec (f :+: g) where
+  execAlgebra (Inl x) = execAlgebra x
+  execAlgebra (Inr y) = execAlgebra y
+
+getChar :: (Teletype :<: f) => Term f Char
+getChar = minject (GetChar Pure)
+
+putChar :: (Teletype :<: f) => Char -> Term f ()
+putChar c = minject (PutChar c (Pure ()))
+
+readFile :: (FileSystem :<: f) => FilePath -> Term f String
+readFile fp = minject (ReadFile fp Pure)
+
+writeFile :: (FileSystem :<: f) => FilePath -> String -> Term f ()
+writeFile fp str = minject (WriteFile fp str (Pure ()))
+
+cat :: FilePath -> Term (Teletype :+: FileSystem) ()
+cat fp = do
+  contents <- readFile fp
+  mapM_ putChar contents
+  return ()
