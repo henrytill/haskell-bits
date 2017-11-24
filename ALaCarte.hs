@@ -3,6 +3,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE DeriveFunctor         #-}
 -- |
 -- Module      : ALaCarte
 -- Description : Data types a la carte
@@ -196,3 +197,60 @@ instance Functor f => Monad (Term f) where
   return x       = Pure x
   Pure   x >>= f = f x
   Impure t >>= f = Impure (fmap (>>= f) t)
+
+data Zero    a           deriving Functor
+data One     a = One     deriving Functor
+data Const e a = Const e deriving Functor
+
+identExample :: Term Zero Int
+identExample = (*) <$> pure 3 <*> pure 4
+
+maybeExample :: Term One Int
+maybeExample = (*) <$> pure 3 <*> Impure One
+
+errorExample :: Term (Const String) Int
+errorExample = (*) <$> pure 3 <*> Impure (Const "quux")
+
+data Incr   t = Incr Int t        deriving Functor
+data Recall t = Recall (Int -> t) deriving Functor
+
+minject :: (g :<: f) => g (Term f a) -> Term f a
+minject = Impure . inj
+
+incr :: (Incr :<: f) => Int -> Term f ()
+incr i = minject (Incr i (Pure ()))
+
+recall :: (Recall :<: f) => Term f Int
+recall = minject (Recall Pure)
+
+tick :: Term (Recall :+: Incr) Int
+tick = do y <- recall
+          incr 1
+          return y
+
+foldTerm :: Functor f => (a -> b) -> (f b -> b) -> Term f a -> b
+foldTerm pur _   (Pure   x) = pur x
+foldTerm pur imp (Impure t) = imp (fmap (foldTerm pur imp) t)
+
+newtype Mem = Mem Int
+  deriving Show
+
+class Functor f => Run f where
+  runAlgebra :: f (Mem -> (a, Mem)) -> (Mem -> (a, Mem))
+
+instance Run Incr where
+  runAlgebra (Incr k r) (Mem i) = r (Mem (i + k))
+
+instance Run Recall where
+  runAlgebra (Recall r) (Mem i) = r i (Mem i)
+
+instance (Run f, Run g) => Run (f :+: g) where
+  runAlgebra (Inl r) = runAlgebra r
+  runAlgebra (Inr r) = runAlgebra r
+
+run :: Run f => Term f a -> Mem -> (a, Mem)
+run = foldTerm (,) runAlgebra
+
+-- $
+-- >>> run tick (Mem 4)
+-- (4,Mem 5)
