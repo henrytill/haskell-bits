@@ -1,14 +1,14 @@
-{-# LANGUAGE GADTs              #-}
 {-# LANGUAGE DataKinds          #-}
+{-# LANGUAGE GADTs              #-}
 {-# LANGUAGE KindSignatures     #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TypeOperators      #-}
 {-# LANGUAGE TypeFamilies       #-}
+{-# LANGUAGE TypeOperators      #-}
 
 module Singletons where
 
-import Data.Proxy
-import Prelude hiding (head)
+import           Data.Proxy
+import           Prelude    hiding (head)
 
 -- * Introduction
 
@@ -121,7 +121,7 @@ vchop (SSucc m) (VCons x xs) = (VCons x ys, zs)
 -- VCons 1 (VCons 2 (VCons 3 VNil))
 --
 vtake :: SNat m -> Proxy n -> Vec x (m :+ n) -> Vec x m
-vtake SZero     n xs           = VNil
+vtake SZero     _ _            = VNil
 vtake (SSucc m) n (VCons x xs) = VCons x (vtake m n xs)
 
 -- |
@@ -141,10 +141,10 @@ proxy _ = Proxy
 class SNAT (n :: Nat) where
   nat :: SNat n
 
-instance SNAT Zero where
+instance SNAT 'Zero where
   nat = SZero
 
-instance SNAT n => SNAT (Succ n) where
+instance SNAT n => SNAT ('Succ n) where
   nat = SSucc nat
 
 -- | A more implicit version of `vtake`.  The return type determines the
