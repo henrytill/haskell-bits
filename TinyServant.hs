@@ -5,13 +5,21 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
-
+-- |
+-- Module      : TinyServant
+-- Description : Implementing a minimal version of haskell-servant
+-- Maintainer  : henrytill@gmail.com
+-- Stability   : experimental
+--
+-- Code from:
+-- <http://www.well-typed.com/blog/2015/11/implementing-a-minimal-version-of-haskell-servant/>
+--
 module TinyServant where
 
 import           Control.Applicative
 import           Data.Time
 import           GHC.TypeLits
-import qualified Text.Read            as Read
+import qualified Text.Read           as Read
 
 
 data Proxy a = Proxy
@@ -64,9 +72,12 @@ serve p h xs = case route p h xs of
   Just m  -> m
 
 instance Show a => HasServer (Get a) where
-  route :: Proxy (Get a) -> IO a -> [String] -> Maybe (IO String)
-  route _ handler [] = Just (show <$> handler)
-  route _ _       _  = Nothing
+  route :: Proxy (Get a)
+        -> IO a
+        -> [String]
+        -> Maybe (IO String)
+  route _ _       (_:_) = Nothing
+  route _ handler []    = Just (show <$> handler)
 
 instance (HasServer a, HasServer b) => HasServer (a :<|> b) where
   route :: Proxy (a :<|> b)
@@ -82,16 +93,16 @@ instance (KnownSymbol s, HasServer r) => HasServer ((s :: Symbol) :> r) where
         -> Server r
         -> [String]
         -> Maybe (IO String)
+  route _ _       []                    = Nothing
   route _ handler (x : xs)
     | symbolVal (Proxy :: Proxy s) == x = route (Proxy :: Proxy r) handler xs
     | otherwise                         = Nothing
-  route _ _       []                    = Nothing
 
 instance (Read a, HasServer r) => HasServer (Capture a :> r) where
   route :: Proxy (Capture a :> r)
         -> (a -> Server r)
         -> [String]
         -> Maybe (IO String)
+  route _ _       []       = Nothing
   route _ handler (x : xs) = do a <- Read.readMaybe x
                                 route (Proxy :: Proxy r) (handler a) xs
-  route _ _       _        = Nothing
