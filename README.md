@@ -1,0 +1,3 @@
+# haskell-bits
+
+Some random bits of code from papers, blog posts, etc...
