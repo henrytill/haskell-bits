@@ -1,6 +1,9 @@
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
-
 -- |
+-- Module      : MicroParsec
+-- Description : A small parser combinator example
+--
+-- Code from:
 -- <http://dev.stephendiehl.com/fun/002_parsers.html>
 --
 module MicroParsec (main) where
@@ -15,7 +18,7 @@ runParser :: Parser a -> String -> a
 runParser m s =
   case parse m s of
     [(res, [])] -> res
-    [(_, rs)]   -> error "Parser did not consume entire stream."
+    [(_, _)]    -> error "Parser did not consume entire stream."
     _           -> error "Parser error."
 
 item :: Parser Char

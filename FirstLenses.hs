@@ -5,8 +5,6 @@
 -- |
 -- Module      : FirstLenses
 -- Description : Notes from "Lenses: Compositional Data Access and Manipulation"
--- Maintainer  : henrytill@gmail.com
--- Stability   : experimental
 --
 -- Notes from Simon Peyton Jones's presentation,
 --

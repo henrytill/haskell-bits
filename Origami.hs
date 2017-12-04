@@ -1,12 +1,9 @@
 {-# OPTIONS_GHC -Wall            #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-
 -- |
 -- Module      : Origami
 -- Description : Origami programming
--- Maintainer  : henrytill@gmail.com
--- Stability   : experimental
 --
 -- <https://www.cs.ox.ac.uk/jeremy.gibbons/publications/origami.pdf>
 --

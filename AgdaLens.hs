@@ -1,7 +1,6 @@
 {-# LANGUAGE BangPatterns  #-}
 {-# LANGUAGE RankNTypes    #-}
 {-# LANGUAGE TupleSections #-}
-
 -- |
 -- Module      : AgdaLens
 -- Description : A cut-down implementation of lenses
@@ -10,7 +9,7 @@
 -- A cut-down implementation of lenses, with names taken from Edward Kmett's lens package.
 --
 -- <https://github.com/agda/agda/blob/master/src/full/Agda/Utils/Lens.hs>
-
+--
 module AgdaLens where
 
 import Control.Applicative

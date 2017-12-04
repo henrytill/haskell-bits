@@ -1,9 +1,13 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
-
+-- |
+-- Module      : RankNTank
+-- Description : Exploring RankNTypes
+--
+-- Code from:
 -- <https://ocharles.org.uk/blog/guest-posts/2014-12-18-rank-n-types.html>
-
+--
 module RankNTank where
 
 import Control.Monad.State

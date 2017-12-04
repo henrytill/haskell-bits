@@ -1,8 +1,6 @@
 -- |
 -- Module      : Zipper
 -- Description : Huet's Zipper
--- Maintainer  : henrytill@gmail.com
--- Stability   : experimental
 --
 -- <http://gallium.inria.fr/~huet/PUBLIC/zip.pdf Functional Pearls: The Zipper>, by Gerard Huet
 --

@@ -7,10 +7,8 @@
 -- |
 -- Module      : ALaCarte
 -- Description : Data types a la carte
--- Maintainer  : henrytill@gmail.com
--- Stability   : experimental
 --
--- Code from Wouter Swiestra's
+-- Code from Wouter Swierstra's
 -- /Data types a la carte/.
 --
 module ALaCarte where

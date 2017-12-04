@@ -1,8 +1,6 @@
 -- |
 -- Module      : Bananas
 -- Description : Functional Programming with Bananas, Lenses, Envelopes and Barbed Wire
--- Maintainer  : henrytill@gmail.com
--- Stability   : experimental
 --
 -- <https://www.researchgate.net/publication/2592417_Functional_Programming_with_Bananas_Lenses_Envelopes_and_Barbed_Wire>
 --

@@ -4,7 +4,10 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies       #-}
 {-# LANGUAGE TypeOperators      #-}
-
+-- |
+-- Module      : Singletons
+-- Description : Dependently Typed Programming in Haskell
+--
 module Singletons where
 
 import           Data.Proxy

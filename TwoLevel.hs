@@ -1,7 +1,10 @@
 {-# LANGUAGE DeriveFunctor        #-}
 {-# LANGUAGE StandaloneDeriving   #-}
 {-# LANGUAGE UndecidableInstances #-}
-
+-- |
+-- Module      : TwoLevel
+-- Description : Two-level types
+--
 module TwoLevel where
 
 newtype Fix f = In { out :: f (Fix f) }

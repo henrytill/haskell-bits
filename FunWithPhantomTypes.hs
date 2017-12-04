@@ -1,9 +1,9 @@
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE ExplicitForAll #-}
+{-# LANGUAGE GADTs          #-}
 
 module FunWithPhantomTypes where
 
--- * 1. Introducing phantom types
+-- * 1. Introducing "phantom types" (or GADTs)
 
 -- | A simple expression language
 data Term t where
@@ -64,8 +64,8 @@ data Bit = Ze | On
 compress :: forall t. Type t -> t -> [Bit]
 compress (RInt)        i      = compressInt i
 compress (RChar)       c      = compressChar c
-compress (RList ra)    []     = Ze:[]
-compress (RList ra)    (a:as) = On:compress ra a ++ compress (RList ra) as
+compress (RList _)     []     = Ze : []
+compress (RList ra)    (a:as) = On : compress ra a ++ compress (RList ra) as
 compress (RPair ra rb) (a, b) = compress ra a ++ compress rb b
 
 compressInt :: Int -> [Bit]
