@@ -6,6 +6,7 @@ let
   packages = ps: with ps;
     [ HUnit
       QuickCheck
+      ansi-wl-pprint
       attoparsec
       async
       bifunctors
