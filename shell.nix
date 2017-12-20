@@ -2,52 +2,11 @@
 
 let
   inherit (nixpkgs) pkgs;
-
-  packages = ps: with ps;
-    [ HUnit
-      QuickCheck
-      ansi-wl-pprint
-      attoparsec
-      async
-      bifunctors
-      bytestring
-      categories
-      comonad
-      containers
-      criterion
-      dlist
-      doctest
-      free
-      hashable
-      kan-extensions
-      lens
-      lens-family
-      mtl
-      operational
-      optparse-applicative
-      parsec
-      process
-      process-extras
-      random
-      recursion-schemes
-      smallcheck
-      tasty
-      tasty-hunit
-      tasty-quickcheck
-      text
-      transformers
-      unix
-      unix-compat
-      vector
-      wai
-      warp
-      zlib
-    ];
-
-  ghcEnv = pkgs.haskellPackages.ghcWithHoogle packages;
-
-in pkgs.stdenv.mkDerivation {
-  name = "playground";
-  buildInputs = [ ghcEnv ];
-  shellHook = "eval $(egrep ^export ${ghcEnv}/bin/ghc)";
-}
+  ghcEnv = pkgs.haskellPackages.ghcWithHoogle (import ./nix/packages.nix);
+  bits   = pkgs.stdenv.mkDerivation {
+             name = "bits";
+             buildInputs = [ ghcEnv ];
+             shellHook = "eval $(egrep ^export ${ghcEnv}/bin/ghc)";
+           };
+in
+  bits
