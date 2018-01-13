@@ -3,14 +3,17 @@
 -- Module      : MicroParsec
 -- Description : A small parser combinator example
 --
--- Code from:
+-- Inspired by:
 -- <http://dev.stephendiehl.com/fun/002_parsers.html>
 --
-module MicroParsec (main) where
+module MicroParsec where
 
-import Data.Char
-import Control.Monad
-import Control.Applicative
+import           Control.Applicative
+import           Control.Monad
+import           Data.Char
+
+
+-- * Parser
 
 newtype Parser a = Parser { parse :: String -> [(a, String)] }
 
@@ -21,23 +24,22 @@ runParser m s =
     [(_, _)]    -> error "Parser did not consume entire stream."
     _           -> error "Parser error."
 
-item :: Parser Char
-item = Parser $ \s ->
-  case s of
-    []       -> []
-    (c : cs) -> [(c, cs)]
+instance Functor Parser where
+  fmap f (Parser cs) = Parser (\ s -> [(f a, b) | (a, b) <- cs s])
 
-bind :: Parser a -> (a -> Parser b) -> Parser b
-bind p f = Parser $ \ s -> concatMap (\ (a, s') -> parse (f a) s') $ parse p s
+instance Applicative Parser where
+  pure                          = return
+  (Parser cs1) <*> (Parser cs2) = Parser (\ s -> [(f a, s2) | (f, s1) <- cs1 s, (a, s2) <- cs2 s1])
 
-unit :: a -> Parser a
-unit a = Parser (\ s -> [(a, s)])
-
-combine :: Parser a -> Parser a -> Parser a
-combine p q = Parser (\ s -> parse p s ++ parse q s)
+instance Monad Parser where
+  return a        = Parser (\ s -> [(a, s)])
+  Parser af >>= k = Parser (\ s -> concatMap (\ (a, s') -> parse (k a) s') (af s))
 
 failure :: Parser a
 failure = Parser (const [])
+
+combine :: Parser a -> Parser a -> Parser a
+combine p q = Parser (\ s -> parse p s ++ parse q s)
 
 option :: Parser a -> Parser a -> Parser a
 option p q = Parser $ \ s ->
@@ -45,33 +47,27 @@ option p q = Parser $ \ s ->
     []  -> parse q s
     res -> res
 
-satisfy :: (Char -> Bool) -> Parser Char
-satisfy p = item `bind` \ c ->
-  if p c
-  then unit c
-  else Parser (const [])
-
-instance Functor Parser where
-  fmap f (Parser cs) = Parser (\ s -> [(f a, b) | (a, b) <- cs s])
-
-instance Applicative Parser where
-  pure = return
-  (Parser cs1) <*> (Parser cs2) = Parser (\ s -> [(f a, s2) | (f, s1) <- cs1 s, (a, s2) <- cs2 s1])
-
-instance Monad Parser where
-  return = unit
-  (>>=)  = bind
-
 instance MonadPlus Parser where
   mzero = failure
   mplus = combine
 
 instance Alternative Parser where
-  empty = mzero
+  empty = failure
   (<|>) = option
 
-
--- Combinators
+-- * Combinators
+
+item :: Parser Char
+item = Parser $ \ s ->
+  case s of
+    []       -> []
+    (c : cs) -> [(c, cs)]
+
+satisfy :: (Char -> Bool) -> Parser Char
+satisfy p = item >>= \ c ->
+  if p c
+  then return c
+  else Parser (const [])
 
 oneOf :: String -> Parser Char
 oneOf s = satisfy (`elem` s)
@@ -89,8 +85,14 @@ p `chainl1` op = p >>= rest
 char :: Char -> Parser Char
 char c = satisfy (c ==)
 
+digit :: Parser Char
+digit = satisfy isDigit
+
+alpha :: Parser Char
+alpha = satisfy isAlpha
+
 natural :: Parser Integer
-natural = read <$> some (satisfy isDigit)
+natural = read <$> some digit
 
 string :: String -> Parser String
 string []     = return []
@@ -108,8 +110,8 @@ token p = do
 reserved :: String -> Parser String
 reserved s = token (string s)
 
-digit :: Parser Char
-digit = satisfy isDigit
+word :: Parser String
+word = some alpha
 
 number :: Parser Int
 number = do
@@ -124,51 +126,33 @@ parens m = do
   reserved ")"
   return n
 
-
--- Calculator
+-- * Untyped Lambda Calculus example
 
-data Expr
-  = Add Expr Expr
-  | Mul Expr Expr
-  | Sub Expr Expr
-  | List Int
+data Lam
+  = Var String
+  | Abs String Lam
+  | App Lam Lam
   deriving Show
 
-eval :: Expr -> Int
-eval ex = case ex of
-  Add a b -> eval a + eval b
-  Mul a b -> eval a * eval b
-  Sub a b -> eval a - eval b
-  List n  -> n
+absP :: Parser Lam -> Parser Lam
+absP bodyP = do
+  reserved "\\"
+  p <- token word
+  reserved "."
+  x <- bodyP
+  return (Abs p x)
 
-int :: Parser Expr
-int = do
-  n <- number
-  return (List n)
+varP :: Parser Lam
+varP = Var <$> token word
 
-expr :: Parser Expr
-expr = term `chainl1` addOp
+nonAppP :: Parser Lam
+nonAppP = parens lamP <|> absP lamP <|> varP
 
-term :: Parser Expr
-term = factor `chainl1` mulOp
-
-factor :: Parser Expr
-factor = int <|> parens expr
-
-infixOp :: String -> (a -> a -> a) -> Parser (a -> a -> a)
-infixOp x f = reserved x >> return f
-
-addOp :: Parser (Expr -> Expr -> Expr)
-addOp = infixOp "+" Add <|> infixOp "-" Sub
-
-mulOp :: Parser (Expr -> Expr -> Expr)
-mulOp = infixOp "*" Mul
-
-run :: String -> Expr
-run = runParser expr
+lamP :: Parser Lam
+lamP = nonAppP `chainl1` (spaces >> return App)
 
 main :: IO ()
 main = forever $ do
   putStr "> "
   a <- getLine
-  print $ eval $ run a
+  print $ runParser lamP a
