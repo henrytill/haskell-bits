@@ -32,10 +32,12 @@ ps: with ps; [
   servant-client
   servant-server
   smallcheck
+  syb
   tar
   tasty
   tasty-hunit
   tasty-quickcheck
+  template-haskell
   text
   transformers
   type-level-sets
