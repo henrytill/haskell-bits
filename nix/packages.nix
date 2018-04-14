@@ -1,6 +1,7 @@
 ps: with ps; [
   HUnit
   QuickCheck
+  adjunctions
   ansi-wl-pprint
   array
   attoparsec
@@ -19,6 +20,7 @@ ps: with ps; [
   lattices
   lens
   lens-family
+  lmdb
   mtl
   operational
   optparse-applicative
@@ -28,6 +30,7 @@ ps: with ps; [
   random
   recursion-schemes
   ref-fd
+  serialise
   servant
   servant-client
   servant-server
