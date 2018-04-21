@@ -8,7 +8,7 @@
 -- Code from:
 -- <https://ocharles.org.uk/blog/guest-posts/2014-12-18-rank-n-types.html>
 --
-module RankNTank where
+module RankNTypesExamples where
 
 import Control.Monad.State
 import Data.Char
