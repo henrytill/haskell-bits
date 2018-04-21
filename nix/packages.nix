@@ -9,6 +9,7 @@ ps: with ps; [
   bifunctors
   bytestring
   categories
+  cereal
   comonad
   containers
   criterion
