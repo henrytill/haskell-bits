@@ -13,6 +13,7 @@ ps: with ps; [
   comonad
   containers
   criterion
+  cryptonite
   dlist
   doctest
   free
