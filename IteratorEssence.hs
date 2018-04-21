@@ -1,5 +1,4 @@
 {-# OPTIONS_GHC -Wall             #-}
-{-# LANGUAGE DeriveFunctor        #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE StandaloneDeriving   #-}
 {-# LANGUAGE UndecidableInstances #-}
