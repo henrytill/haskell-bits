@@ -6,7 +6,10 @@ ps: with ps; [
   array
   attoparsec
   async
+  base16-bytestring
   bifunctors
+  binary
+  blake2
   bytestring
   categories
   cereal
