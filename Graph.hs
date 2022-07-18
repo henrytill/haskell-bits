@@ -9,6 +9,7 @@ module Graph where
 
 import           Data.Array
 
+
 type Vertex  = Char
 type Table a = Array Vertex a
 type Graph   = Table [Vertex]

@@ -23,3 +23,13 @@ sieve (p : xs) = p : sieve [x | x <- xs, x `mod` p > 0]
 
 primes :: [Int]
 primes = sieve [2..]
+
+-- | Useful canary
+-- https://stackoverflow.com/questions/52227157/how-is-assert-used
+assertionCanary :: IO Bool
+assertionCanary = do
+  assertionsWorking <- try $ assert False $ return ()
+  return $
+    case assertionsWorking of
+      Left (AssertionFailed _) -> True
+      _                        -> False
