@@ -4,10 +4,10 @@
       let
         lib = self.haskell.lib;
       in
-        super.haskellPackages.override {
-          overrides = self: super: {
-            serialise = lib.overrideCabal super.serialise (oldAttrs: { doCheck = false; });
-          };
+      super.haskellPackages.override {
+        overrides = self: super: {
+          serialise = lib.overrideCabal super.serialise (oldAttrs: { doCheck = false; });
         };
+      };
   };
 }
