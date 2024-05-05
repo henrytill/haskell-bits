@@ -1,12 +1,12 @@
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+
 -- |
 -- Module      : STExplorations
 -- Description : Understanding ST
---
 module STExplorations where
 
-import           Control.Monad.ST
-import           Data.STRef
+import Control.Monad.ST
+import Data.STRef
 
 swap :: STRef s a -> STRef s a -> ST s ()
 swap v w = do

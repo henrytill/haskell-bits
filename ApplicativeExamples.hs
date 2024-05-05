@@ -2,7 +2,7 @@
 
 module ApplicativeExamples where
 
-import Prelude hiding (any, concat, elem, repeat, sequence, traverse, Traversable)
+import Prelude hiding (Traversable, any, concat, elem, repeat, sequence, traverse)
 
 -- * 1. Introduction
 
@@ -28,7 +28,7 @@ import Prelude hiding (any, concat, elem, repeat, sequence, traverse, Traversabl
 -- of usage if we had a kind of "effectful application".
 
 -- | "Effectful application"
-ap :: Monad m => m (a -> b) -> m a -> m b
+ap :: (Monad m) => m (a -> b) -> m a -> m b
 ap mf mx = do
   f <- mf
   x <- mx
@@ -37,10 +37,9 @@ ap mf mx = do
 -- | Implementation of `sequence` using `return` and `ap`
 --
 -- `return` lifts pure values to the effecful world, whilst `ap` provides "application" within it
---
 sequence :: [IO a] -> IO [a]
-sequence []     = return []
-sequence (c:cs) = return (:) `ap` c `ap` sequence cs
+sequence [] = return []
+sequence (c : cs) = return (:) `ap` c `ap` sequence cs
 
 -- ** Transposing "matrices"
 
@@ -68,13 +67,13 @@ repeat x = x : repeat x
 
 -- | Zippy application
 zapp :: [a -> b] -> [a] -> [b]
-zapp (f:fs) (x:xs) = f x : zapp fs xs
-zapp _      _      = []
+zapp (f : fs) (x : xs) = f x : zapp fs xs
+zapp _ _ = []
 
 -- | An implementation of `transpose` using `repeat` and `zapp`.
 transpose :: [[a]] -> [[a]]
-transpose []       = repeat []
-transpose (xs:xss) = repeat (:) `zapp` xs `zapp` transpose xss
+transpose [] = repeat []
+transpose (xs : xss) = repeat (:) `zapp` xs `zapp` transpose xss
 
 -- ** Evaluating expressions
 
@@ -85,10 +84,10 @@ data Exp v
 
 type Env v = [(v, Int)]
 
-fetch :: Eq v => v -> Env v -> Int
+fetch :: (Eq v) => v -> Env v -> Int
 fetch v env = case lookup v env of
-                Just x  -> x
-                Nothing -> error "whoops"
+  Just x -> x
+  Nothing -> error "whoops"
 
 -- $
 -- When implementing an evaluator for a language of expressions, it is customary
@@ -108,9 +107,9 @@ k x env = x
 s :: (env -> a -> b) -> (env -> a) -> (env -> b)
 s ef es env = (ef env) (es env)
 
-eval :: Eq v => Exp v -> Env v -> Int
-eval (Var x)   = fetch x
-eval (Val i)   = k i
+eval :: (Eq v) => Exp v -> Env v -> Int
+eval (Var x) = fetch x
+eval (Val i) = k i
 eval (Add p q) = k (+) `s` eval p `s` eval q
 
 -- $
@@ -179,28 +178,27 @@ eval (Add p q) = k (+) `s` eval p `s` eval q
 -- >   ef <*> ex = \env -> (ef env) (ex env)
 
 sequence' :: [IO a] -> IO [a]
-sequence' []     = pure []
-sequence' (c:cs) = pure (:) <*> c <*> sequence' cs
+sequence' [] = pure []
+sequence' (c : cs) = pure (:) <*> c <*> sequence' cs
 
-eval' :: Eq v => Exp v -> Env v -> Int
-eval' (Var x)   = fetch x
-eval' (Val i)   = pure i
+eval' :: (Eq v) => Exp v -> Env v -> Int
+eval' (Var x) = fetch x
+eval' (Val i) = pure i
 eval' (Add p q) = pure (+) <*> eval' p <*> eval' q
 
-newtype ZipList a = ZipList { unZipList :: [a] }
-  deriving Functor
+newtype ZipList a = ZipList {unZipList :: [a]}
+  deriving (Functor)
 
-instance Show a => Show (ZipList a) where
+instance (Show a) => Show (ZipList a) where
   show (ZipList a) = "ZipList " ++ show a
 
 instance Applicative ZipList where
-  pure    = ZipList . repeat
+  pure = ZipList . repeat
   a <*> b = ZipList (zapp (unZipList a) (unZipList b))
 
 -- |
 -- >>> transpose' [[1,2,3], [4,5,6], [7,8,9]]
 -- [[1,4,7],[2,5,8],[3,6,9]]
---
 transpose' :: [[a]] -> [[a]]
 transpose' = unZipList . appDist . fmap ZipList
 
@@ -208,9 +206,9 @@ transpose' = unZipList . appDist . fmap ZipList
 
 -- | The /applicative distributor/, of which `sequence` and `transpose` are both
 -- instances
-appDist :: Applicative f => [f a] -> f [a]
-appDist []       = pure []
-appDist (xs:xss) = pure (:) <*> xs <*> appDist xss
+appDist :: (Applicative f) => [f a] -> f [a]
+appDist [] = pure []
+appDist (xs : xss) = pure (:) <*> xs <*> appDist xss
 
 -- $
 -- Distribution is often used together with "map".
@@ -227,18 +225,18 @@ appDist (xs:xss) = pure (:) <*> xs <*> appDist xss
 -- to collect the results.  More generally it is preferable to define this
 -- applicative mapping operation directly, with a single traversal:
 
-rawTraverse :: Applicative f => (a -> f b) -> [a] -> f [b]
-rawTraverse f []     = pure []
-rawTraverse f (x:xs) = pure (:) <*> f x <*> rawTraverse f xs
+rawTraverse :: (Applicative f) => (a -> f b) -> [a] -> f [b]
+rawTraverse f [] = pure []
+rawTraverse f (x : xs) = pure (:) <*> f x <*> rawTraverse f xs
 
 -- $
 -- This is just the way that you would implement ordinary `fmap` for lists, but
 -- the right-hand sides are shifted into the idiom.
 
 class Traversable t where
-  traverse :: Applicative f => (a -> f b) -> t a     -> f (t b)
-  dist     :: Applicative f =>               t (f a) -> f (t a)
-  dist      = traverse id
+  traverse :: (Applicative f) => (a -> f b) -> t a -> f (t b)
+  dist :: (Applicative f) => t (f a) -> f (t a)
+  dist = traverse id
 
 instance Traversable [] where
   traverse = rawTraverse
@@ -247,14 +245,14 @@ instance Traversable [] where
 -- Of course we can recover an oridinary "map" operator by taking /f/ to be the
 -- identity - the simple applicative functor in which all computations are pure:
 
-newtype Id a = An { an :: a }
-  deriving Show
+newtype Id a = An {an :: a}
+  deriving (Show)
 
 instance Functor Id where
   fmap f (An x) = An (f x)
 
 instance Applicative Id where
-  pure          = An
+  pure = An
   An f <*> An x = An (f x)
 
 -- $
@@ -263,7 +261,7 @@ instance Applicative Id where
 -- |
 -- >>> effmap (\x -> (x + 1)) [1,2,3]
 -- [2,3,4]
-effmap :: Traversable t => (a -> b) -> t a -> t b
+effmap :: (Traversable t) => (a -> b) -> t a -> t b
 effmap f = an . traverse (An . f)
 
 -- $
@@ -273,10 +271,10 @@ effmap f = an . traverse (An . f)
 data Tree a
   = Leaf
   | Node (Tree a) a (Tree a)
-  deriving Show
+  deriving (Show)
 
 instance Traversable Tree where
-  traverse f Leaf         = pure Leaf
+  traverse f Leaf = pure Leaf
   traverse f (Node l x r) = pure Node <*> traverse f l <*> f x <*> traverse f r
 
 -- $
@@ -286,8 +284,8 @@ instance Traversable Tree where
 
 -- * 4. `Monoid`s are phantom `Applicative` functors
 
-newtype Accy o a = Acc { acc :: o }
-  deriving Show
+newtype Accy o a = Acc {acc :: o}
+  deriving (Show)
 
 instance Functor (Accy o) where
   fmap _ (Acc acc) = Acc acc
@@ -296,8 +294,8 @@ instance Functor (Accy o) where
 -- @ Accy o a @ is a /phantom type/ - its values have nothing to do with /a/, but
 -- it does yield the applicative functor of accumulating computations:
 
-instance Monoid o => Applicative (Accy o) where
-  pure _          = Acc mempty
+instance (Monoid o) => Applicative (Accy o) where
+  pure _ = Acc mempty
   Acc a <*> Acc b = Acc (a `mappend` b)
 
 -- $
@@ -317,14 +315,12 @@ reduce = accumulate id
 -- >>> let t = Node Leaf 43 (Node (Node Leaf 45 Leaf) 47 (Node (Node Leaf 49 Leaf) 51 Leaf))
 -- >>> flatten t
 -- [43,45,47,49,51]
---
 flatten :: Tree a -> [a]
 flatten = accumulate (: [])
 
 -- |
 -- >>> concat [[1,2],[3,4],[5,6]]
 -- [1,2,3,4,5,6]
---
 concat :: [[a]] -> [a]
 concat = reduce
 
@@ -334,10 +330,10 @@ concat = reduce
 -- we use the disjunctive structure of `Bool` to test for the presence of an
 -- element satisfying a given predicate:
 
-newtype Mighty = Might { might :: Bool }
+newtype Mighty = Might {might :: Bool}
 
 instance Monoid Mighty where
-  mempty                    = Might False
+  mempty = Might False
   Might x `mappend` Might y = Might (x || y)
 
 -- |
@@ -345,8 +341,7 @@ instance Monoid Mighty where
 -- True
 -- >>> any (== 5) [1,2,3,4]
 -- False
---
-any :: Traversable t => (a -> Bool) -> t a -> Bool
+any :: (Traversable t) => (a -> Bool) -> t a -> Bool
 any p = might . accumulate (Might . p)
 
 -- | @ any . (==) @ behaves just as the the `elem` function for lists
@@ -355,7 +350,6 @@ any p = might . accumulate (Might . p)
 -- True
 -- >>> elem 5 [1,2,3,4]
 -- False
---
 elem :: (Eq a, Traversable t) => a -> t a -> Bool
 elem = any . (==)
 
@@ -371,7 +365,7 @@ elem = any . (==)
 -- $
 -- The `Applicative` class is /closed under composition/.
 
-newtype Comp f g a = Comp { comp :: f (g a) }
+newtype Comp f g a = Comp {comp :: f (g a)}
 
 instance (Functor f, Functor g) => Functor (Comp f g) where
   fmap f (Comp x) = Comp (fmap (fmap f) x)
@@ -380,17 +374,17 @@ instance (Functor f, Functor g) => Functor (Comp f g) where
 -- ...just by lifting the inner `Applicative` operations to the outer layer:
 
 instance (Applicative f, Applicative g) => Applicative (Comp f g) where
-  pure x              = Comp (pure (pure x))
+  pure x = Comp (pure (pure x))
   Comp fs <*> Comp xs = Comp ((pure (<*>)) <*> fs <*> xs)
 
 -- ** Accumulating exceptions
 
 data Except err a = OK a | Failed err
-  deriving Show
+  deriving (Show)
 
 instance Functor (Except err) where
   fmap _ (Failed err) = Failed err
-  fmap f (OK a)       = OK (f a)
+  fmap f (OK a) = OK (f a)
 
 -- $
 -- A `Monad` instance for this type must abort the computation on the first
@@ -398,11 +392,11 @@ instance Functor (Except err) where
 -- However with the `Applicative` interface we can continue in the face or
 -- errors:
 
-instance Monoid err => Applicative (Except err) where
-  pure                        = OK
-  OK f        <*> OK x        = OK (f x)
-  OK f        <*> Failed err  = Failed err
-  Failed err  <*> OK x        = Failed err
+instance (Monoid err) => Applicative (Except err) where
+  pure = OK
+  OK f <*> OK x = OK (f x)
+  OK f <*> Failed err = Failed err
+  Failed err <*> OK x = Failed err
   Failed err1 <*> Failed err2 = Failed (err1 `mappend` err2)
 
 -- $

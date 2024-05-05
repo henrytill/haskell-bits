@@ -4,15 +4,15 @@
 --
 -- Code from David J. King and John Launchbury's
 -- /Structuring Depth-First Search Algorithms in Haskell/.
---
 module Graph where
 
-import           Data.Array
+import Data.Array
 
+type Vertex = Char
 
-type Vertex  = Char
 type Table a = Array Vertex a
-type Graph   = Table [Vertex]
+
+type Graph = Table [Vertex]
 
 vertices :: Graph -> [Vertex]
 vertices = indices
@@ -20,10 +20,10 @@ vertices = indices
 type Edge = (Vertex, Vertex)
 
 edges :: Graph -> [Edge]
-edges g = [ (v, w) | v <- vertices g, w <- g ! v]
+edges g = [(v, w) | v <- vertices g, w <- g ! v]
 
 mapT :: (Vertex -> a -> b) -> Table a -> Table b
-mapT f t = array (bounds t) [ (v, f v (t ! v)) | v <- indices t ]
+mapT f t = array (bounds t) [(v, f v (t ! v)) | v <- indices t]
 
 type Bounds = (Vertex, Vertex)
 
@@ -36,8 +36,19 @@ buildG :: Bounds -> [Edge] -> Graph
 buildG bnds es = accumArray (flip (:)) [] bnds es
 
 graph :: Graph
-graph = buildG ('a', 'j') [ ('a', 'j'), ('a', 'g'), ('b', 'i')
-                          , ('b', 'a'), ('c', 'h'), ('c', 'e')
-                          , ('e', 'j'), ('e', 'h'), ('e', 'd')
-                          , ('f', 'i'), ('g', 'f'), ('g', 'b')
-                          ]
+graph =
+  buildG
+    ('a', 'j')
+    [ ('a', 'j'),
+      ('a', 'g'),
+      ('b', 'i'),
+      ('b', 'a'),
+      ('c', 'h'),
+      ('c', 'e'),
+      ('e', 'j'),
+      ('e', 'h'),
+      ('e', 'd'),
+      ('f', 'i'),
+      ('g', 'f'),
+      ('g', 'b')
+    ]

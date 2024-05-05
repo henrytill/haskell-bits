@@ -1,13 +1,13 @@
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE RankNTypes #-}
+
 -- |
 -- Module      : RankNTank
 -- Description : Exploring RankNTypes
 --
 -- Code from:
 -- <https://ocharles.org.uk/blog/guest-posts/2014-12-18-rank-n-types.html>
---
 module RankNTypesExamples where
 
 import Control.Monad.State
@@ -18,7 +18,6 @@ import System.Random
 --
 -- >>> intId 42
 -- 42
---
 intId :: Integer -> Integer
 intId x = x
 
@@ -26,7 +25,6 @@ intId x = x
 --
 -- >>> doubleId 42.42
 -- 42.42
---
 doubleId :: Double -> Double
 doubleId x = x
 
@@ -40,7 +38,6 @@ doubleId x = x
 -- 42
 -- >>> identity "forty-two"
 -- "forty-two"
---
 identity :: forall a. a -> a
 identity x = x
 
@@ -56,7 +53,6 @@ identity' x = x
 --
 -- >>> someInt identity
 -- 3
---
 someInt :: IdFunc -> Integer
 someInt f = f 3
 
@@ -67,33 +63,34 @@ type SomeInt = IdFunc -> Integer
 --
 -- >>> someOtherInt someInt
 -- 6
---
 someOtherInt :: SomeInt -> Integer
 someOtherInt si = si id + si id
 
 -- * Example: Random Numbers
 
 data Player = Player
-  { playerName :: String
-  , playerPos  :: (Double, Double)
-  } deriving Show
+  { playerName :: String,
+    playerPos :: (Double, Double)
+  }
+  deriving (Show)
 
-type GenAction  m = forall a. Random a => m a
-type GenActionR m = forall a. Random a => (a, a) -> m a
+type GenAction m = forall a. (Random a) => m a
 
-genRandom :: RandomGen g => GenAction (State g)
+type GenActionR m = forall a. (Random a) => (a, a) -> m a
+
+genRandom :: (RandomGen g) => GenAction (State g)
 genRandom = state random
 
-genRandomR :: RandomGen g => GenActionR (State g)
+genRandomR :: (RandomGen g) => GenActionR (State g)
 genRandomR range = state (randomR range)
 
-randomPlayer :: MonadIO m => GenActionR m -> m Player
+randomPlayer :: (MonadIO m) => GenActionR m -> m Player
 randomPlayer genR = do
   liftIO (putStrLn "Generating random player...")
-  len  <- genR (8, 12)
+  len <- genR (8, 12)
   name <- replicateM len (genR ('a', 'z'))
-  x    <- genR (-100, 100)
-  y    <- genR (-100, 100)
+  x <- genR (-100, 100)
+  y <- genR (-100, 100)
   liftIO (putStrLn "Done.")
   return (Player name (x, y))
 
@@ -107,9 +104,9 @@ data List a
   | Nil
   deriving (Eq, Show)
 
-uncons :: (a -> List a -> r) -> r -> List a ->r
+uncons :: (a -> List a -> r) -> r -> List a -> r
 uncons co ni (Cons x xs) = co x xs
-uncons co ni Nil         = ni
+uncons co ni Nil = ni
 
 listNull :: List a -> Bool
 listNull = uncons (\_ _ -> False) True
@@ -118,9 +115,9 @@ listMap :: (a -> b) -> List a -> List b
 listMap f = uncons (\x xs -> Cons (f x) (listMap f xs)) Nil
 
 -- | Scott-encoded lists are defined in terms of what happens when we 'uncons' them
-newtype ListS a = ListS { unconsS :: forall r. (a -> ListS a -> r) -> r -> r }
+newtype ListS a = ListS {unconsS :: forall r. (a -> ListS a -> r) -> r -> r}
 
-instance Show a => Show (ListS a) where
+instance (Show a) => Show (ListS a) where
   show _ = "<ListS>"
 
 nilS :: ListS a
@@ -133,12 +130,11 @@ class Listable t where
   toList :: t a -> [a]
 
 instance Listable ListS where
-  -- | 'toList' converts a Scott-encoded list into a normal list
+  -- \| 'toList' converts a Scott-encoded list into a normal list
   --
   -- >>> let sl = consS 3 (consS 2 (consS 1 nilS))
   -- >>> toList sl
   -- [3,2,1]
-  --
   toList (ListS f) = f (\x xs -> x : toList xs) []
 
 instance Functor ListS where
@@ -150,9 +146,9 @@ instance Functor ListS where
 -- * Church Encoding
 
 -- | Church-encoded lists are defined in terms of what happens when we fold them
-newtype ListC a = ListC { foldC :: forall r. (a -> r -> r) -> r -> r }
+newtype ListC a = ListC {foldC :: forall r. (a -> r -> r) -> r -> r}
 
-instance Show a => Show (ListC a) where
+instance (Show a) => Show (ListC a) where
   show _ = "<ListC>"
 
 nilC :: ListC a
@@ -162,12 +158,11 @@ consC :: a -> ListC a -> ListC a
 consC x (ListC xs) = ListC (\f z -> f x (xs f z))
 
 instance Listable ListC where
-  -- | 'toList' converts a Church-encoded list into a normal list
+  -- \| 'toList' converts a Church-encoded list into a normal list
   --
   -- >>> let cl = consC 3 (consC 2 (consC 1 nilS))
   -- >>> toList cl
   -- [3,2,1]
-  --
   toList (ListC f) = f (:) []
 
 instance Functor ListC where
@@ -179,21 +174,23 @@ instance Functor ListC where
 -- * GADTs and continuation passing style
 
 data Some :: * -> * where
-  SomeInt  :: Int -> Some Int
+  SomeInt :: Int -> Some Int
   SomeChar :: Char -> Some Char
   Anything :: a -> Some a
 
 unSome :: Some a -> a
-unSome (SomeInt x)  = x + 3
+unSome (SomeInt x) = x + 3
 unSome (SomeChar c) = toLower c
 unSome (Anything x) = x
 
 -- | 'SomeC' is the CPS-encoded version of 'Some'
 newtype SomeC a = SomeC
-  { runSomeC :: forall r. (a ~ Int  => Int  -> r)
-                       -> (a ~ Char => Char -> r)
-                       -> (a -> r)
-                       -> r
+  { runSomeC ::
+      forall r.
+      ((a ~ Int) => Int -> r) ->
+      ((a ~ Char) => Char -> r) ->
+      (a -> r) ->
+      r
   }
 
 -- | 'unSomeC'
@@ -207,6 +204,5 @@ newtype SomeC a = SomeC
 -- 'a'
 -- >>> unSomeC c
 -- "Hello!"
---
 unSomeC :: SomeC a -> a
 unSomeC a = runSomeC a (\x -> x + 3) (\c -> toLower c) (\x -> x)

@@ -1,21 +1,23 @@
-{-# LANGUAGE DeriveFunctor        #-}
-{-# LANGUAGE StandaloneDeriving   #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
+
 -- |
 -- Module      : TwoLevel
 -- Description : Two-level types
---
 module TwoLevel where
 
-newtype Fix f = In { out :: f (Fix f) }
+newtype Fix f = In {out :: f (Fix f)}
 
-deriving instance   Eq (f (Fix f)) =>   Eq (Fix f)
-deriving instance  Ord (f (Fix f)) =>  Ord (Fix f)
-deriving instance Show (f (Fix f)) => Show (Fix f)
+deriving instance (Eq (f (Fix f))) => Eq (Fix f)
+
+deriving instance (Ord (f (Fix f))) => Ord (Fix f)
+
+deriving instance (Show (f (Fix f))) => Show (Fix f)
 
 type Algebra f a = f a -> a
 
-cata :: Functor f => Algebra f a -> Fix f -> a
+cata :: (Functor f) => Algebra f a -> Fix f -> a
 cata alg = alg . fmap (cata alg) . out
 
 -- * A tree
@@ -44,11 +46,11 @@ data RTree
   = RTip
   | RLeaf Int
   | RFork RTree RTree
-  deriving Show
+  deriving (Show)
 
 convertAlg :: Algebra T RTree
-convertAlg Tip        = RTip
-convertAlg (Leaf x)   = RLeaf x
+convertAlg Tip = RTip
+convertAlg (Leaf x) = RLeaf x
 convertAlg (Fork l r) = RFork l r
 
 rExample :: RTree

@@ -1,6 +1,7 @@
-{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE ExplicitForAll #-}
-{-# LANGUAGE GADTs          #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE StandaloneDeriving #-}
+
 -- |
 -- Module      : FunWithPhantomTypes
 -- Description : Examples adapted from "Fun with phantom types"
@@ -10,23 +11,22 @@
 --
 -- Here, Hinze introduces the concepts of GADTs, though by a different name, and
 -- with a speculative syntax.
---
 module FunWithPhantomTypes where
 
-import           Control.Monad                (liftM, liftM2)
-import           Data.Char                    (intToDigit, ord)
-import           Data.List                    (unfoldr)
-import           Text.PrettyPrint.ANSI.Leijen hiding (pretty, list)
+import Control.Monad (liftM, liftM2)
+import Data.Char (intToDigit, ord)
+import Data.List (unfoldr)
+import Text.PrettyPrint.ANSI.Leijen hiding (list, pretty)
 
 -- * 1. Introducing "phantom types"
 
 -- | A simple expression language
 data Term t where
-  Zero   :: Term Int
-  Succ   :: Term Int  -> Term Int
-  Pred   :: Term Int  -> Term Int
-  IsZero :: Term Int  -> Term Bool
-  If     :: Term Bool -> Term a -> Term a -> Term a
+  Zero :: Term Int
+  Succ :: Term Int -> Term Int
+  Pred :: Term Int -> Term Int
+  IsZero :: Term Int -> Term Bool
+  If :: Term Bool -> Term a -> Term a -> Term a
 
 -- | An intepreter for the expression language
 --
@@ -43,12 +43,11 @@ data Term t where
 -- >>> let false = IsZero one
 -- >>> eval (If true true false)
 -- True
---
 eval :: forall t. Term t -> t
-eval (Zero)        = 0
-eval (Succ e)      = eval e + 1
-eval (Pred e)      = eval e - 1
-eval (IsZero e)    = eval e == 0
+eval (Zero) = 0
+eval (Succ e) = eval e + 1
+eval (Pred e) = eval e - 1
+eval (IsZero e) = eval e == 0
 eval (If e1 e2 e3) = if eval e1 then eval e2 else eval e3
 
 -- * 2. Generic functions
@@ -66,11 +65,11 @@ eval (If e1 e2 e3) = if eval e1 then eval e2 else eval e3
 -- 'Int' and 'Char' using the list and the pair type constructor.
 
 data Type t where
-  RInt  :: Type Int
+  RInt :: Type Int
   RChar :: Type Char
   RList :: Type a -> Type [a]
   RPair :: Type a -> Type b -> Type (a, b)
-  RDyn  :: Type Dynamic
+  RDyn :: Type Dynamic
 
 deriving instance Show (Type t)
 
@@ -90,11 +89,12 @@ dec2bin = unfoldr f
     f x = Just (x `mod` 2, x `div` 2)
 
 padding :: Int -> Int -> [Bit]
-padding p x = let b   = dec2bin x
-                  len = length b
-              in if p <= len
-                 then b
-                 else b ++ take (p - len) (repeat 0)
+padding p x =
+  let b = dec2bin x
+      len = length b
+   in if p <= len
+        then b
+        else b ++ take (p - len) (repeat 0)
 
 compressInt :: Int -> [Bit]
 compressInt = padding 32
@@ -105,33 +105,33 @@ compressChar = padding 7 . ord
 data Rep = forall a. Rep (Type a)
 
 compressRep :: Rep -> [Bit]
-compressRep (Rep RInt)          = [0, 0, 0]
-compressRep (Rep RChar)         = [0, 0, 1]
-compressRep (Rep (RList ra))    = 0 : 1 : 0 : compressRep (Rep ra)
+compressRep (Rep RInt) = [0, 0, 0]
+compressRep (Rep RChar) = [0, 0, 1]
+compressRep (Rep (RList ra)) = 0 : 1 : 0 : compressRep (Rep ra)
 compressRep (Rep (RPair ra rb)) = 0 : 1 : 1 : compressRep (Rep ra) ++ compressRep (Rep rb)
-compressRep (Rep RDyn)          = [1, 0, 0]
+compressRep (Rep RDyn) = [1, 0, 0]
 
 compress :: forall t. Type t -> t -> [Bit]
-compress RInt          i          = compressInt i
-compress RChar         c          = compressChar c
-compress (RList _)     []         = 0 : []
-compress (RList ra)    (a:as)     = 1 : compress ra a ++ compress (RList ra) as
-compress (RPair ra rb) (a, b)     = compress ra a ++ compress rb b
-compress RDyn          (Dyn ra x) = compressRep (Rep ra) ++ compress ra x
+compress RInt i = compressInt i
+compress RChar c = compressChar c
+compress (RList _) [] = 0 : []
+compress (RList ra) (a : as) = 1 : compress ra a ++ compress (RList ra) as
+compress (RPair ra rb) (a, b) = compress ra a ++ compress rb b
+compress RDyn (Dyn ra x) = compressRep (Rep ra) ++ compress ra x
 
 block :: Int -> Doc -> Doc
 block i d = group (nest i d)
 
 pretty :: forall t. Type t -> t -> Doc
-pretty RInt          i          = int i
-pretty RChar         c          = char c
-pretty (RList RChar) s          = text s
-pretty (RList ra)    []         = text "[]"
-pretty (RList ra)    (a : as)   = block 1 (text "[" <> pretty ra a <> prettyL as)
+pretty RInt i = int i
+pretty RChar c = char c
+pretty (RList RChar) s = text s
+pretty (RList ra) [] = text "[]"
+pretty (RList ra) (a : as) = block 1 (text "[" <> pretty ra a <> prettyL as)
   where
-    prettyL []       = text "]"
+    prettyL [] = text "]"
     prettyL (a : as) = text "," <> line <> pretty ra a <> prettyL as
-pretty RDyn          (Dyn ra x) = pretty ra x
+pretty RDyn (Dyn ra x) = pretty ra x
 
 -- * 3. Dynamic Values
 
@@ -143,8 +143,7 @@ pretty RDyn          (Dyn ra x) = pretty ra x
 -- Dyn (RList RDyn) [Dyn RInt 60,Dyn (RList RChar) "Bird"]
 -- >>> compress RDyn (Dyn (RList RDyn) ds)
 -- [0,1,0,1,0,0,1,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,1,1,0,1,0,0,0,0,1,1,1,0,0,1,0,1,1,1,0,1,0,0,1,1,1,1,0,0,1,0,0,1,1,0,0]
---
-data Dynamic = forall t. Show t => Dyn (Type t) t
+data Dynamic = forall t. (Show t) => Dyn (Type t) t
 
 deriving instance Show Dynamic
 
@@ -154,12 +153,12 @@ list = map
 pair :: (a -> b) -> (c -> d) -> (a, c) -> (b, d)
 pair f g (a, b) = (f a, g b)
 
-tequal :: forall t  u. Type t -> Type u -> Maybe (t -> u)
-tequal RInt            RInt            = return id
-tequal RChar           RChar           = return id
-tequal (RList ra1)     (RList ra2)     = liftM  list (tequal ra1 ra2)
+tequal :: forall t u. Type t -> Type u -> Maybe (t -> u)
+tequal RInt RInt = return id
+tequal RChar RChar = return id
+tequal (RList ra1) (RList ra2) = liftM list (tequal ra1 ra2)
 tequal (RPair ra1 rb1) (RPair ra2 rb2) = liftM2 pair (tequal ra1 ra2) (tequal rb1 rb2)
-tequal _                _              = fail "cannot tequal"
+tequal _ _ = fail "cannot tequal"
 
 -- |
 -- >>> let d = Dyn RInt 60
@@ -167,6 +166,5 @@ tequal _                _              = fail "cannot tequal"
 -- Just 60
 -- >>> cast d RChar
 -- Nothing
---
 cast :: forall t. Dynamic -> Type t -> Maybe t
-cast (Dyn ra a) rt = fmap (\ f -> f a) (tequal ra rt)
+cast (Dyn ra a) rt = fmap (\f -> f a) (tequal ra rt)

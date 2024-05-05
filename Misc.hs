@@ -1,7 +1,6 @@
 module Misc where
 
-import           Data.List (unfoldr)
-
+import Data.List (unfoldr)
 
 chunks :: Int -> [a] -> [[a]]
 chunks n = unfoldr f
@@ -10,19 +9,20 @@ chunks n = unfoldr f
     f xs = Just (take n xs, drop n xs)
 
 -- | Quicksort (after Hudak)
-qs :: Ord t => [t] -> [t]
-qs []     = []
-qs (x:xs) = qs [y | y <- xs, y <  x ] ++ [x] ++
-            qs [y | y <- xs, y >= x ]
-
+qs :: (Ord t) => [t] -> [t]
+qs [] = []
+qs (x : xs) =
+  qs [y | y <- xs, y < x]
+    ++ [x]
+    ++ qs [y | y <- xs, y >= x]
 
 -- | Sieve of... (Erasothenes ?)
 sieve :: [Int] -> [Int]
-sieve []       = []
+sieve [] = []
 sieve (p : xs) = p : sieve [x | x <- xs, x `mod` p > 0]
 
 primes :: [Int]
-primes = sieve [2..]
+primes = sieve [2 ..]
 
 -- | Useful canary
 -- https://stackoverflow.com/questions/52227157/how-is-assert-used
@@ -32,4 +32,4 @@ assertionCanary = do
   return $
     case assertionsWorking of
       Left (AssertionFailed _) -> True
-      _                        -> False
+      _ -> False

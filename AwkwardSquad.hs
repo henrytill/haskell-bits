@@ -1,12 +1,14 @@
 module AwkwardSquad where
 
-import           Control.Concurrent      (forkIO)
-import           Control.Concurrent.MVar hiding (readMVar)
-import           Control.Monad           (forever)
-import           Prelude                 hiding (read)
+import Control.Concurrent (forkIO)
+import Control.Concurrent.MVar hiding (readMVar)
+import Control.Monad (forever)
+import Prelude hiding (read)
 
-type Channel a = (MVar (Stream a),  -- Read end
-                  MVar (Stream a))  -- Write end (the hole)
+type Channel a =
+  ( MVar (Stream a), -- Read end
+    MVar (Stream a) -- Write end (the hole)
+  )
 
 type Stream a = MVar (Item a)
 
@@ -14,9 +16,9 @@ data Item a = MkItem a (Stream a)
 
 newChan :: IO (Channel a)
 newChan = do
-  read  <- newEmptyMVar
+  read <- newEmptyMVar
   write <- newEmptyMVar
-  hole  <- newEmptyMVar
+  hole <- newEmptyMVar
   putMVar read hole
   putMVar write hole
   return (read, write)
@@ -30,7 +32,7 @@ putChan (_, write) val = do
 
 getChan :: Channel a -> IO a
 getChan (read, _) = do
-  head_var            <- takeMVar read
+  head_var <- takeMVar read
   MkItem val new_head <- readMVar head_var
   putMVar read new_head
   return val
@@ -38,7 +40,7 @@ getChan (read, _) = do
 dupChan :: Channel a -> IO (Channel a)
 dupChan (_, write) = do
   new_read <- newEmptyMVar
-  hole     <- readMVar write
+  hole <- readMVar write
   putMVar new_read hole
   return (new_read, write)
 
@@ -52,4 +54,4 @@ main :: IO ()
 main = do
   c <- newChan
   _ <- forkIO (forever (getChan c >>= print))
-  mapM_ (putChan c) [9,8..0]
+  mapM_ (putChan c) [9, 8 .. 0]

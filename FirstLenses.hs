@@ -1,5 +1,5 @@
-{-# LANGUAGE RankNTypes          #-}
-{-# LANGUAGE RecordWildCards     #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 -- |
@@ -11,22 +11,23 @@
 -- /"Lenses: Compositional Data Access and Manipulation"/,
 --
 -- given at __Haskell Exchange 2013__, 2013.09.10
---
 module FirstLenses where
 
 -- * Motivation
 
-data Person
-  = P { _name   :: String
-      , _addr   :: Address
-      , _salary :: Int
-      } deriving Show
+data Person = P
+  { _name :: String,
+    _addr :: Address,
+    _salary :: Int
+  }
+  deriving (Show)
 
-data Address
-  = A { _road     :: String
-      , _city     :: String
-      , _postcode :: String
-      } deriving Show
+data Address = A
+  { _road :: String,
+    _city :: String,
+    _postcode :: String
+  }
+  deriving (Show)
 
 -- $setup
 -- >>> let addr = A { _road = "26 Bumblebee Ln", _city = "Manassis", _postcode = "02134"}
@@ -47,7 +48,7 @@ data Address
 
 -- ** One function to rule them all!
 
-type Lens s t a b = forall f. Functor f => (a -> f b) -> s -> f t
+type Lens s t a b = forall f. (Functor f) => (a -> f b) -> s -> f t
 
 -- |
 -- Alternately,
@@ -55,7 +56,6 @@ type Lens s t a b = forall f. Functor f => (a -> f b) -> s -> f t
 -- @
 -- type Lens' s a = forall f. Functor f => (a -> f a) -> s -> f s
 -- @
---
 type Lens' s a = Lens s s a a
 
 -- $Want
@@ -87,7 +87,6 @@ type Lens' s a = Lens s s a a
 -- setPostcode :: String -> Person -> Person
 -- setPostcode pc p = set (addr `composeL` postcode) pc p
 -- @
---
 
 -- | A type which is isomorphic to `Lens'`
 --
@@ -95,12 +94,12 @@ type Lens' s a = Lens s s a a
 -- lensToLensR :: Lens' s a -> LensR s a
 -- lensRToLens :: LensR s a -> Lens' s a
 -- @
-data LensR s a
-  = L { viewR :: s -> a
-      , setR  :: a -> s -> s
-      }
+data LensR s a = L
+  { viewR :: s -> a,
+    setR :: a -> s -> s
+  }
 
-newtype Identity a = Identity { runIdentity :: a }
+newtype Identity a = Identity {runIdentity :: a}
 
 instance Functor Identity where
   fmap f (Identity x) = Identity (f x)
@@ -112,7 +111,6 @@ instance Functor Identity where
 -- set :: Lens' s a -> a -> s -> s
 -- set ln x = runIdentity . ln (Identity . const x)
 -- @
---
 set :: forall s a. Lens' s a -> a -> s -> s
 set ln x s = runIdentity (ln setField s)
   where
@@ -123,7 +121,7 @@ over :: Lens' s a -> (a -> a) -> s -> s
 over ln f = runIdentity . ln (Identity . f)
 
 -- | A functor that ignores its argument
-newtype Const v a = Const { getConst :: v }
+newtype Const v a = Const {getConst :: v}
 
 instance Functor (Const v) where
   fmap _ (Const x) = Const x
@@ -135,15 +133,14 @@ instance Functor (Const v) where
 -- view :: Lens' s a -> s -> a
 -- view ln = getConst . ln Const
 -- @
---
 view :: Lens' s a -> s -> a
 view ln s = getConst (ln Const s)
 
 lensToLensR :: Lens' s a -> LensR s a
-lensToLensR ln = L { viewR = view ln, setR = set ln }
+lensToLensR ln = L {viewR = view ln, setR = set ln}
 
 lensRToLens :: LensR s a -> Lens' s a
-lensRToLens L{..} f s = (\a -> setR a s) <$> (f (viewR s))
+lensRToLens L {..} f s = (\a -> setR a s) <$> (f (viewR s))
 
 -- * Making lenses
 
@@ -152,7 +149,6 @@ lensRToLens L{..} f s = (\a -> setR a s) <$> (f (viewR s))
 -- "Fred"
 -- >>> set name "Bill" fred
 -- P {_name = "Bill", _addr = A {_road = "26 Bumblebee Ln", _city = "Manassis", _postcode = "02134"}, _salary = 100}
---
 name :: Lens' Person String
 name eltFn (P n a s) = (\n' -> P n' a s) <$> (eltFn n)
 
@@ -183,14 +179,12 @@ address eltFn (P n a s) = (\a' -> P n a' s) <$> (eltFn a)
 -- |
 -- >>> view (address . postcode) fred
 -- "02134"
---
 postcode :: Lens' Address String
 postcode eltFn (A r c p) = (\p' -> A r c p') <$> (eltFn p)
 
 -- |
 -- >>> setPostcode "55555" fred
 -- P {_name = "Fred", _addr = A {_road = "26 Bumblebee Ln", _city = "Manassis", _postcode = "55555"}, _salary = 100}
---
 setPostcode :: String -> Person -> Person
 setPostcode = set (address . postcode)
 
@@ -199,7 +193,7 @@ setPostcode = set (address . postcode)
 -- $
 -- Change `Functor` to `Applicative` and get a multi-focus lens
 
-type Traversal' s a = forall f. Applicative f => (a -> f a) -> s -> f s
+type Traversal' s a = forall f. (Applicative f) => (a -> f a) -> s -> f s
 
 roadAndCity :: Traversal' Address String
 roadAndCity eltFn (A r c p) = (\r' c' -> A r' c' p) <$> eltFn r <*> eltFn c

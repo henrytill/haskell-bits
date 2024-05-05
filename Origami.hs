@@ -1,12 +1,12 @@
-{-# OPTIONS_GHC -Wall            #-}
-{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# OPTIONS_GHC -Wall #-}
+
 -- |
 -- Module      : Origami
 -- Description : Origami programming
 --
 -- <https://www.cs.ox.ac.uk/jeremy.gibbons/publications/origami.pdf>
---
 module Origami where
 
 import Data.Maybe (isNothing)
@@ -27,7 +27,6 @@ data List a
 --
 -- >>> wrap 7
 -- Cons 7 Nil
---
 wrap :: a -> List a
 wrap x = Cons x Nil
 
@@ -37,9 +36,8 @@ wrap x = Cons x Nil
 -- True
 -- >>> nil (Cons 1 Nil)
 -- False
---
 nil :: List a -> Bool
-nil Nil        = True
+nil Nil = True
 nil (Cons _ _) = False
 
 -- $
@@ -52,9 +50,8 @@ nil (Cons _ _) = False
 --
 -- >>> foldL (+) 0 x
 -- 6
---
 foldL :: (a -> b -> b) -> b -> List a -> b
-foldL _ e Nil         = e
+foldL _ e Nil = e
 foldL f e (Cons x xs) = f x (foldL f e xs)
 
 -- *** Exercise 3.2
@@ -62,14 +59,12 @@ foldL f e (Cons x xs) = f x (foldL f e xs)
 -- |
 -- >>> mapL (+1) x
 -- Cons 2 (Cons 3 (Cons 4 Nil))
---
 mapL :: (a -> b) -> List a -> List b
 mapL f = foldL (\a acc -> Cons (f a) acc) Nil
 
 -- |
 -- >>> appendL x y
 -- Cons 1 (Cons 2 (Cons 3 (Cons 4 (Cons 5 (Cons 6 Nil)))))
---
 appendL :: List a -> List a -> List a
 appendL xs ys = foldL Cons ys xs
 
@@ -77,7 +72,6 @@ appendL xs ys = foldL Cons ys xs
 -- >>> let xy = Cons x (Cons y Nil)
 -- >>> concatL xy
 -- Cons 1 (Cons 2 (Cons 3 (Cons 4 (Cons 5 (Cons 6 Nil)))))
---
 concatL :: List (List a) -> List a
 concatL = foldL appendL Nil
 
@@ -97,15 +91,14 @@ concatL = foldL appendL Nil
 --
 -- >>> isort (Cons 6 (Cons 1 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil))))))
 -- Cons 1 (Cons 2 (Cons 3 (Cons 4 (Cons 5 (Cons 6 Nil)))))
---
-isort :: Ord a => List a -> List a
+isort :: (Ord a) => List a -> List a
 isort = foldL insert Nil
   where
-    insert :: Ord a => a -> List a -> List a
-    insert y Nil         = wrap y
+    insert :: (Ord a) => a -> List a -> List a
+    insert y Nil = wrap y
     insert y (Cons x xs)
-      | y < x            = Cons y (Cons x xs)
-      | otherwise        = Cons x (insert y xs)
+      | y < x = Cons y (Cons x xs)
+      | otherwise = Cons x (insert y xs)
 
 -- *** Exercise 3.4
 
@@ -113,19 +106,17 @@ isort = foldL insert Nil
 -- >>> let z = Cons 1 (Cons 2 (Cons 4 Nil))
 -- >>> insert1 3 z
 -- Cons 1 (Cons 2 (Cons 3 (Cons 4 Nil)))
---
-insert1 :: Ord a => a -> List a -> List a
+insert1 :: (Ord a) => a -> List a -> List a
 insert1 y = snd . foldL inserter (Nil, wrap y)
   where
     inserter x (xs, acc)
-      | y < x            = (Cons x xs, Cons y (Cons x xs))
-      | otherwise        = (Cons x xs, Cons x acc)
+      | y < x = (Cons x xs, Cons y (Cons x xs))
+      | otherwise = (Cons x xs, Cons x acc)
 
 -- |
 -- >>> isort1 (Cons 6 (Cons 1 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil))))))
 -- Cons 1 (Cons 2 (Cons 3 (Cons 4 (Cons 5 (Cons 6 Nil)))))
---
-isort1 :: Ord a => List a -> List a
+isort1 :: (Ord a) => List a -> List a
 isort1 = foldL insert1 Nil
 
 -- *** Exercise 3.5
@@ -138,18 +129,17 @@ isort1 = foldL insert1 Nil
 -- tail `xs` along with the result `paraL f e xs` of the recursive call on that
 -- tail.
 paraL :: (a -> (List a, b) -> b) -> b -> List a -> b
-paraL _ e Nil         = e
+paraL _ e Nil = e
 paraL f e (Cons x xs) = f x (xs, paraL f e xs)
 
 -- | The paramorphism operator for numbers
 paraN :: (Eq a, Num a) => (a -> b -> b) -> b -> a -> b
-paraN _  b 0 = b
+paraN _ b 0 = b
 paraN op b n = (n - 1) `op` (paraN op b (n - 1))
 
 -- | Factorial defined using `paraN`
 -- >>> factorial 5
 -- 120
---
 factorial :: (Num a, Eq a) => a -> a
 factorial x = paraN op 1 x
   where
@@ -159,13 +149,12 @@ factorial x = paraN op 1 x
 -- >>> let z = Cons 1 (Cons 2 (Cons 4 Nil))
 -- >>> insert2 3 z
 -- Cons 1 (Cons 2 (Cons 3 (Cons 4 Nil)))
---
-insert2 :: forall a. Ord a => a -> List a -> List a
+insert2 :: forall a. (Ord a) => a -> List a -> List a
 insert2 y = paraL f (wrap y)
   where
     f :: a -> (List a, List a) -> List a
     f x (xs, acc)
-      | y < x     = Cons y (Cons x xs)
+      | y < x = Cons y (Cons x xs)
       | otherwise = Cons x acc
 
 -- ** Unfolds for lists
@@ -177,25 +166,23 @@ insert2 y = paraL f (wrap y)
 -- lists:
 --
 -- > unfoldr :: (b -> Maybe (a, b)) -> b -> [a]
---
 
 -- | An equivalent implementation of `unfoldr` for our `List` datatype
 unfoldL' :: (b -> Maybe (a, b)) -> b -> List a
 unfoldL' f u = case f u of
-                 Nothing     -> Nil
-                 Just (x, v) -> Cons x (unfoldL' f v)
+  Nothing -> Nil
+  Just (x, v) -> Cons x (unfoldL' f v)
 
 -- | `zip` in terms of `unfoldL'`
 --
 -- >>> zip (x, y)
 -- Cons (1,4) (Cons (2,5) (Cons (3,6) Nil))
---
 zip :: forall a b. (List a, List b) -> List (a, b)
 zip = unfoldL' f
   where
     f :: (List a, List b) -> Maybe ((a, b), (List a, List b))
     f (Cons x xs, Cons y ys) = Just ((x, y), (xs, ys))
-    f _                      = Nothing
+    f _ = Nothing
 
 -- $
 -- =Note:
@@ -204,33 +191,40 @@ zip = unfoldL' f
 -- `Nothing`, and two functions yielding the two components of the pair when it
 -- does not.
 
-unfoldL
-  :: (b -> Bool) -- ^ Predicate `p` determines when the seed should unfold the empty `List`
-  -> (b -> a)    -- ^ When @p == False@, `f` gives the head of the `List`
-  -> (b -> b)    -- ^ When @p == False@, `g` gives the seed from which to unfold the tail
-  -> b           -- ^ The thing to unfold
-  -> List a      -- ^ The unfolded value
-unfoldL p f g b = if p b
-                    then Nil
-                    else Cons (f b) (unfoldL p f g (g b))
+unfoldL ::
+  -- | Predicate `p` determines when the seed should unfold the empty `List`
+  (b -> Bool) ->
+  -- | When @p == False@, `f` gives the head of the `List`
+  (b -> a) ->
+  -- | When @p == False@, `g` gives the seed from which to unfold the tail
+  (b -> b) ->
+  -- | The thing to unfold
+  b ->
+  -- | The unfolded value
+  List a
+unfoldL p f g b =
+  if p b
+    then Nil
+    else Cons (f b) (unfoldL p f g (g b))
 
 -- *** Exercise 3.6
 
 -- $
 -- Express `unfoldL` in terms of `unfoldL'`, and vice versa
 
-unfoldL1
-  :: forall a b
-   . (b -> Bool)
-  -> (b -> a)
-  -> (b -> b)
-  -> b
-  -> List a
+unfoldL1 ::
+  forall a b.
+  (b -> Bool) ->
+  (b -> a) ->
+  (b -> b) ->
+  b ->
+  List a
 unfoldL1 p f g = unfoldL' translator
   where
     translator :: b -> Maybe (a, b)
-    translator x | p x       = Nothing
-                 | otherwise = Just (f x, g x)
+    translator x
+      | p x = Nothing
+      | otherwise = Just (f x, g x)
 
 unfoldL2 :: forall a b. (b -> Maybe (a, b)) -> b -> List a
 unfoldL2 h = unfoldL p f g
@@ -240,13 +234,13 @@ unfoldL2 h = unfoldL p f g
 
     f :: b -> a
     f x = case h x of
-            Just (a, _) -> a
-            Nothing     -> error "something is wrong"
+      Just (a, _) -> a
+      Nothing -> error "something is wrong"
 
     g :: b -> b
     g x = case h x of
-            Just (_, b) -> b
-            Nothing     -> error "something is wrong"
+      Just (_, b) -> b
+      Nothing -> error "something is wrong"
 
 -- $
 -- =Note:
@@ -254,7 +248,7 @@ unfoldL2 h = unfoldL p f g
 -- type @Maybe (a, b) -> b@ in place of `foldL`'s two argument:
 
 foldL' :: (Maybe (a, b) -> b) -> List a -> b
-foldL' f Nil         = f Nothing
+foldL' f Nil = f Nothing
 foldL' f (Cons x xs) = f (Just (x, foldL' f xs))
 
 -- $
@@ -273,10 +267,10 @@ foldL1 f = foldL translator zero
   where
     translator :: a -> b -> b
     translator a b = f (Just (a, b))
-    zero           = f Nothing
+    zero = f Nothing
 
 foldL2 :: (a -> b -> b) -> b -> List a -> b
-foldL2 f zero = foldL' (maybe zero (\ (a, b) -> f a b))
+foldL2 f zero = foldL' (maybe zero (\(a, b) -> f a b))
 
 -- *** Exercise 3.9
 
@@ -289,19 +283,20 @@ foldLargs f zero = translator
   where
     translator :: Maybe (a, b) -> b
     translator (Just (a, b)) = f a b
-    translator Nothing       = zero
+    translator Nothing = zero
 
-unfoldLargs
-  :: forall a b
-   . (b -> Bool)
-  -> (b -> a)
-  -> (b -> b)
-  -> (b -> Maybe (a, b))
+unfoldLargs ::
+  forall a b.
+  (b -> Bool) ->
+  (b -> a) ->
+  (b -> b) ->
+  (b -> Maybe (a, b))
 unfoldLargs p f g = translator
   where
     translator :: b -> Maybe (a, b)
-    translator x | p x       = Just (f x, g x)
-                 | otherwise = Nothing
+    translator x
+      | p x = Just (f x, g x)
+      | otherwise = Nothing
 
 -- $
 -- One sorting algorithm expressible as a list unfold is /selection sort/, which
@@ -312,10 +307,9 @@ unfoldLargs p f g = translator
 -- |
 -- >>> delmin (Cons 6 (Cons 1 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil))))))
 -- Just (1,Cons 6 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil)))))
---
-delmin :: Ord a => List a -> Maybe (a, List a)
+delmin :: (Ord a) => List a -> Maybe (a, List a)
 delmin Nil = Nothing
-delmin xs  = Just (y, deleteL y xs)
+delmin xs = Just (y, deleteL y xs)
   where
     y = minimumL xs
 
@@ -324,9 +318,8 @@ delmin xs  = Just (y, deleteL y xs)
 --
 -- >>> minimumL (Cons 6 (Cons 1 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil))))))
 -- 1
---
-minimumL :: Ord a => List a -> a
-minimumL Nil         = error "minimumL Nil"
+minimumL :: (Ord a) => List a -> a
+minimumL Nil = error "minimumL Nil"
 minimumL (Cons x xs) = foldL min x xs
 
 -- | `deleteL` is the `List` equivalent of the standard library function
@@ -334,12 +327,11 @@ minimumL (Cons x xs) = foldL min x xs
 --
 -- >>> deleteL 6 (Cons 6 (Cons 1 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil))))))
 -- Cons 1 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil))))
---
-deleteL :: Eq a => a -> List a -> List a
-deleteL _ Nil         = Nil
+deleteL :: (Eq a) => a -> List a -> List a
+deleteL _ Nil = Nil
 deleteL y (Cons x xs)
-  | y == x            = xs
-  | otherwise         = Cons x (deleteL y xs)
+  | y == x = xs
+  | otherwise = Cons x (deleteL y xs)
 
 -- $
 -- Then selection sort is straightforward to define:
@@ -347,8 +339,7 @@ deleteL y (Cons x xs)
 -- |
 -- >>> ssort (Cons 6 (Cons 1 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil))))))
 -- Cons 1 (Cons 2 (Cons 3 (Cons 4 (Cons 5 (Cons 6 Nil)))))
---
-ssort :: Ord a => List a -> List a
+ssort :: (Ord a) => List a -> List a
 ssort = unfoldL' delmin
 
 -- *** Exercise 3.10
@@ -359,12 +350,11 @@ ssort = unfoldL' delmin
 -- Cons 1 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil))))
 -- >>> deleteL' 5 (Cons 6 (Cons 1 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil))))))
 -- Cons 6 (Cons 1 (Cons 2 (Cons 4 (Cons 3 Nil))))
---
-deleteL' :: Eq a => a -> List a -> List a
+deleteL' :: (Eq a) => a -> List a -> List a
 deleteL' y = paraL f (wrap y)
   where
     f x (xs, acc)
-      | y == x    = xs
+      | y == x = xs
       | otherwise = Cons x acc
 
 -- *** Exercise 3.11
@@ -375,57 +365,53 @@ deleteL' y = paraL f (wrap y)
 -- Just (1,Cons 6 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil)))))
 -- >>> delmin' (Cons 7 (Cons 8 (Cons 9 (Cons 10 (Cons 11 (Cons 12 Nil))))))
 -- Just (7,Cons 8 (Cons 9 (Cons 10 (Cons 11 (Cons 12 Nil)))))
---
-delmin' :: forall a. Ord a => List a -> Maybe (a, List a)
+delmin' :: forall a. (Ord a) => List a -> Maybe (a, List a)
 delmin' = paraL f Nothing
   where
     f :: a -> (List a, Maybe (a, List a)) -> Maybe (a, List a)
-    f x (xs, Nothing)                   = Just (x, xs)
-    f x (xs, Just (m, acc)) | x < m     = Just (x, xs)
-                            | otherwise = Just (m, Cons x acc)
+    f x (xs, Nothing) = Just (x, xs)
+    f x (xs, Just (m, acc))
+      | x < m = Just (x, xs)
+      | otherwise = Just (m, Cons x acc)
 
 -- | `bubble` has the same type as `delmin`, but it does not preserve the
 -- relative order of remaining list elements.  This means that it is possible to
 -- define `bubble` as a fold.
---
-bubble :: Ord a => List a -> Maybe (a, List a)
+bubble :: (Ord a) => List a -> Maybe (a, List a)
 bubble = foldL step Nothing
   where
-    step x Nothing        = Just (x, Nil)
+    step x Nothing = Just (x, Nil)
     step x (Just (y, ys))
-      | x < y             = Just (x, Cons y ys)
-      | otherwise         = Just (y, Cons x ys)
+      | x < y = Just (x, Cons y ys)
+      | otherwise = Just (y, Cons x ys)
 
 -- |
 -- >>> bsort (Cons 6 (Cons 1 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil))))))
 -- Cons 1 (Cons 2 (Cons 3 (Cons 4 (Cons 5 (Cons 6 Nil)))))
---
-bsort :: Ord a => List a -> List a
+bsort :: (Ord a) => List a -> List a
 bsort = unfoldL' bubble
 
 -- *** Exercise 3.12
 
 -- | An alternate version of `bubble` that returns a `List` with the minimum
 -- element "bubbled" to the top
---
-bubble' :: Ord a => List a -> List a
+bubble' :: (Ord a) => List a -> List a
 bubble' = foldL f Nil
   where
-    f x Nil         = Cons x Nil
+    f x Nil = Cons x Nil
     f x (Cons m xs)
-      | x < m       = Cons x (Cons m xs)
-      | otherwise   = Cons m (Cons x xs)
+      | x < m = Cons x (Cons m xs)
+      | otherwise = Cons m (Cons x xs)
 
 -- |
 -- >>> bsort' (Cons 6 (Cons 1 (Cons 5 (Cons 2 (Cons 4 (Cons 3 Nil))))))
 -- Cons 1 (Cons 2 (Cons 3 (Cons 4 (Cons 5 (Cons 6 Nil)))))
---
-bsort' :: Ord a => List a -> List a
+bsort' :: (Ord a) => List a -> List a
 bsort' = unfoldL' b
   where
     b xs = case bubble' xs of
-             (Cons y ys) -> Just (y, ys)
-             Nil         -> Nothing
+      (Cons y ys) -> Just (y, ys)
+      Nil -> Nothing
 
 -- *** Exercise 3.13
 
@@ -433,16 +419,15 @@ bsort' = unfoldL' b
 -- >>> let z = Cons 1 (Cons 2 (Cons 4 Nil))
 -- >>> insertWithUnfold 3 z
 -- Cons 1 (Cons 2 (Cons 3 (Cons 4 Nil)))
---
-insertWithUnfold :: Ord a => a -> List a -> List a
+insertWithUnfold :: (Ord a) => a -> List a -> List a
 insertWithUnfold x xs = unfoldL' inserter (Just x, xs)
   where
-    inserter (Just i,  Cons y ys)
-      | i < y                     = Just (i, (Nothing, Cons y ys))
-      | otherwise                 = Just (y, (Just i,  ys))
+    inserter (Just i, Cons y ys)
+      | i < y = Just (i, (Nothing, Cons y ys))
+      | otherwise = Just (y, (Just i, ys))
     inserter (Nothing, Cons y ys) = Just (y, (Nothing, ys))
-    inserter (Just i,  Nil)       = Just (i, (Nothing, Nil))
-    inserter (Nothing, Nil)       = Nothing
+    inserter (Just i, Nil) = Just (i, (Nothing, Nil))
+    inserter (Nothing, Nil) = Nothing
 
 -- *** Exercise 3.14
 
@@ -462,24 +447,23 @@ insertWithUnfold x xs = unfoldL' inserter (Just x, xs)
 -- complete list, which is used directly.
 apoL' :: (b -> Maybe (a, Either b (List a))) -> b -> List a
 apoL' f u = case f u of
-              Nothing            -> Nil
-              Just (x, Left v)   -> Cons x (apoL' f v)
-              Just (x, Right xs) -> Cons x xs
+  Nothing -> Nil
+  Just (x, Left v) -> Cons x (apoL' f v)
+  Just (x, Right xs) -> Cons x xs
 
 -- | `insert` as an instance of `apoL'`.
 --
 -- >>> let z = Cons 1 (Cons 2 (Cons 4 Nil))
 -- >>> insertWithApo 3 z
 -- Cons 1 (Cons 2 (Cons 3 (Cons 4 Nil)))
---
-insertWithApo :: forall a. Ord a => a -> List a -> List a
+insertWithApo :: forall a. (Ord a) => a -> List a -> List a
 insertWithApo x xs = apoL' apper xs
   where
     apper :: (List a -> Maybe (a, Either (List a) (List a)))
     apper (Cons y ys)
-      | y < x         = Just (y, Left ys)
-      | otherwise     = Just (x, Right (Cons y ys))
-    apper Nil         = Nothing
+      | y < x = Just (y, Left ys)
+      | otherwise = Just (x, Right (Cons y ys))
+    apper Nil = Nothing
 
 -- ** Hylomorphisms
 
@@ -495,7 +479,6 @@ insertWithApo x xs = apoL' apper xs
 -- |
 -- >>> fact 5
 -- 120
---
 fact :: Integer -> Integer
 fact = foldL (*) 1 . unfoldL (== 0) id pred
 
@@ -505,40 +488,38 @@ fact = foldL (*) 1 . unfoldL (== 0) id pred
 -- syntax tree (unfolding to the tree type) from which to generate code (folding
 -- the abstract syntax tree).
 
-hyloL
-  :: (a -> c -> c)
-  -> c
-  -> (b -> Bool)
-  -> (b -> a)
-  -> (b -> b)
-  -> b
-  -> c
+hyloL ::
+  (a -> c -> c) ->
+  c ->
+  (b -> Bool) ->
+  (b -> a) ->
+  (b -> b) ->
+  b ->
+  c
 hyloL f e p g h = foldL f e . unfoldL p g h
 
 -- |
 -- >>> fact' 5
 -- 120
---
 fact' :: Integer -> Integer
 fact' = hyloL (*) 1 (== 0) id pred
 
-hyloLFused
-  :: (a -> c -> c)
-  -> c
-  -> (b -> Bool)
-  -> (b -> a)
-  -> (b -> b)
-  -> b
-  -> c
+hyloLFused ::
+  (a -> c -> c) ->
+  c ->
+  (b -> Bool) ->
+  (b -> a) ->
+  (b -> b) ->
+  b ->
+  c
 hyloLFused f e p g h b =
   if p b
-  then e
-  else f (g b) (hyloLFused f e p g h (h b))
+    then e
+    else f (g b) (hyloLFused f e p g h (h b))
 
 -- |
 -- >>> factFused 5
 -- 120
---
 factFused :: Integer -> Integer
 factFused = hyloL (*) 1 (== 0) id pred
 
@@ -551,20 +532,20 @@ decimalStringToBinary = undefined
 
 -- * Origami by numbers: loops
 
-data Nat = Zero | Succ Nat deriving Show
+data Nat = Zero | Succ Nat deriving (Show)
 
 intToNat :: Int -> Nat
 intToNat 0 = Zero
 intToNat x = Succ (intToNat (x - 1))
 
 natToInt :: Nat -> Int
-natToInt Zero     = 0
+natToInt Zero = 0
 natToInt (Succ n) = 1 + natToInt n
 
 -- ** Folds for naturals
 
 foldN :: a -> (a -> a) -> Nat -> a
-foldN z _ Zero     = z
+foldN z _ Zero = z
 foldN z s (Succ n) = s (foldN z s n)
 
 -- $
@@ -573,7 +554,6 @@ foldN z s (Succ n) = s (foldN z s n)
 
 -- | A higher-order function that applies a given function of type @a -> a@ a
 -- given number of times
---
 iter :: Nat -> (a -> a) -> a -> a
 iter n f x = foldN x f n
 
@@ -581,7 +561,7 @@ iter n f x = foldN x f n
 
 -- | The single-argument version of foldN
 foldN' :: (Maybe a -> a) -> Nat -> a
-foldN' f Zero     = f Nothing
+foldN' f Zero = f Nothing
 foldN' f (Succ n) = f (Just (foldN' f n))
 
 -- | `foldN'` in terms of `foldN`
@@ -597,28 +577,25 @@ foldN2 z s = foldN' (maybe z s)
 -- |
 -- >>> addN (Succ Zero) (Succ (Succ Zero))
 -- Succ (Succ (Succ Zero))
---
 addN :: Nat -> Nat -> Nat
 addN m = foldN m Succ
 
 -- |
 -- >>> mulN (Succ (Succ (Succ Zero))) (Succ (Succ Zero))
 -- Succ (Succ (Succ (Succ (Succ (Succ Zero)))))
---
 mulN :: Nat -> Nat -> Nat
 mulN m = foldN Zero (addN m)
 
 -- |
 -- >>> powN (Succ (Succ (Succ Zero))) (Succ (Succ Zero))
 -- Succ (Succ (Succ (Succ (Succ (Succ (Succ (Succ (Succ Zero))))))))
---
 powN :: Nat -> Nat -> Nat
 powN m = foldN (Succ Zero) (mulN m)
 
 -- *** Exercise 3.19
 
 predN :: Nat -> Maybe Nat
-predN Zero     = Nothing
+predN Zero = Nothing
 predN (Succ n) = Just n
 
 -- | `predN` in terms of `foldN`
@@ -627,11 +604,10 @@ predN (Succ n) = Just n
 -- Just (Succ (Succ Zero))
 -- >>> predN' Zero
 -- Nothing
---
 predN' :: Nat -> Maybe Nat
 predN' = foldN Nothing f
   where
-    f Nothing  = Just Zero
+    f Nothing = Just Zero
     f (Just n) = Just (Succ n)
 
 -- *** Exercise 3.20
@@ -639,7 +615,6 @@ predN' = foldN Nothing f
 -- |
 -- >>> subN (Succ (Succ (Succ Zero))) (Succ (Succ Zero))
 -- Just (Succ Zero)
---
 subN :: Nat -> Nat -> Maybe Nat
 subN m = foldN (Just m) ((=<<) predN)
 
@@ -648,12 +623,11 @@ subN m = foldN (Just m) ((=<<) predN)
 -- False
 -- >>> eqN (Succ (Succ (Succ Zero))) (Succ (Succ (Succ Zero)))
 -- True
---
 eqN :: Nat -> Nat -> Bool
 eqN (Succ m) (Succ n) = eqN m n
-eqN (Succ _) Zero     = False
-eqN Zero     (Succ _) = False
-eqN Zero     Zero     = True
+eqN (Succ _) Zero = False
+eqN Zero (Succ _) = False
+eqN Zero Zero = True
 
 -- |
 -- >>> lessN (Succ (Succ (Succ Zero))) (Succ (Succ Zero))
@@ -662,19 +636,18 @@ eqN Zero     Zero     = True
 -- False
 -- >>> lessN (Succ Zero) (Succ (Succ (Succ Zero)))
 -- True
---
 lessN :: Nat -> Nat -> Bool
 lessN (Succ m) (Succ n) = lessN m n
-lessN (Succ _) Zero     = False
-lessN Zero     (Succ _) = True
-lessN Zero     Zero     = False
+lessN (Succ _) Zero = False
+lessN Zero (Succ _) = True
+lessN Zero Zero = False
 
 -- ** Unfolds for naturals
 
 unfoldN' :: (a -> Maybe a) -> a -> Nat
 unfoldN' f x = case f x of
-                 Nothing -> Zero
-                 Just y  -> Succ (unfoldN' f y)
+  Nothing -> Zero
+  Just y -> Succ (unfoldN' f y)
 
 -- | A version of `unfoldN'` which splits the single argument into simpler
 -- components.
@@ -683,7 +656,6 @@ unfoldN' f x = case f x of
 -- recursive function theory, which takes a predicate @p@, a function @f@ and a
 -- value @x@, and computer the least number @n@ such that @p (iter n f x)@
 -- holds.
---
 unfoldN :: (a -> Bool) -> (a -> a) -> a -> Nat
 unfoldN p f x = if p x then Zero else Succ (unfoldN p f (f x))
 
@@ -697,15 +669,16 @@ unfoldN1 f = unfoldN p g
 
     g :: a -> a
     g x = case f x of
-            Just a  -> a
-            Nothing -> error "something is wrong"
+      Just a -> a
+      Nothing -> error "something is wrong"
 
 unfoldN2 :: forall a. (a -> Bool) -> (a -> a) -> a -> Nat
 unfoldN2 p f = unfoldN' translator
   where
     translator :: a -> Maybe a
-    translator x | p x       = Nothing
-                 | otherwise = Just (f x)
+    translator x
+      | p x = Nothing
+      | otherwise = Just (f x)
 
 -- *** Exercise 3.23
 
@@ -714,13 +687,12 @@ unfoldN2 p f = unfoldN' translator
 -- >>> let two   = Succ (Succ Zero)
 -- >>> divN eight two
 -- Succ (Succ (Succ (Succ Zero)))
---
 divN :: Nat -> Nat -> Nat
 divN m n = unfoldN' f m
   where
     f :: Nat -> Maybe Nat
     f x@(Succ _) = subN x n
-    f Zero       = Nothing
+    f Zero = Nothing
 
 -- *** Exercise 3.24
 
@@ -751,12 +723,13 @@ hyloN' f g = foldN' f . unfoldN' g
 
 hyloN :: (Maybe a -> a) -> (a -> Maybe a) -> a -> a
 hyloN f g x = case g x of
-                Nothing -> x
-                Just y  -> hyloN f g (f (Just y))
+  Nothing -> x
+  Just y -> hyloN f g (f (Just y))
 
 -- * Origami with trees: traversals
 
-data Rose a   = Node a (Forest a) deriving Show
+data Rose a = Node a (Forest a) deriving (Show)
+
 type Forest a = List (Rose a)
 
 -- ** Folds for trees and forests
@@ -770,7 +743,6 @@ type Forest a = List (Rose a)
 -- >>> let plus1 = \ a g -> Node (a + 1) g
 -- >>> foldR plus1 id t
 -- Node 43 (Cons (Node 44 Nil) (Cons (Node 45 Nil) (Cons (Node 46 Nil) Nil)))
---
 foldR :: (a -> g -> b) -> (List b -> g) -> Rose a -> b
 foldR f g (Node a ts) = f a (foldF f g ts)
 
@@ -784,7 +756,6 @@ foldF f g ts = g (mapL (foldR f g) ts)
 -- >>> let plus1 = \ a g -> Node (a + 1) g
 -- >>> foldRose plus1 t
 -- Node 43 (Cons (Node 44 Nil) (Cons (Node 45 Nil) (Cons (Node 46 Nil) Nil)))
---
 foldRose :: (a -> List b -> b) -> Rose a -> b
 foldRose f (Node a ts) = f a (mapL (foldRose f) ts)
 
@@ -794,7 +765,6 @@ foldRose f (Node a ts) = f a (mapL (foldRose f) ts)
 -- >>> let plus1 = \ a g -> Node (a + 1) g
 -- >>> foldRose1 plus1 t
 -- Node 43 (Cons (Node 44 Nil) (Cons (Node 45 Nil) (Cons (Node 46 Nil) Nil)))
---
 foldRose1 :: (a -> List b -> b) -> Rose a -> b
 foldRose1 h = foldR h id
 
@@ -804,7 +774,6 @@ foldRose1 h = foldR h id
 -- >>> let plus1 = \ a g -> Node (a + 1) g
 -- >>> foldR1 plus1 id t
 -- Node 43 (Cons (Node 44 Nil) (Cons (Node 45 Nil) (Cons (Node 46 Nil) Nil)))
---
 foldR1 :: forall a g b. (a -> g -> b) -> (List b -> g) -> Rose a -> b
 foldR1 f g = foldRose h
   where
@@ -847,7 +816,7 @@ kids (Node _ ts) = ts
 -- children; the traversal of a forest is obtained by concatenating the
 -- traversals of its trees.
 
-dft :: Rose   a -> List a
+dft :: Rose a -> List a
 dff :: Forest a -> List a
 (dft, dff) = (foldR f g, foldF f g)
   where
@@ -876,12 +845,12 @@ dff :: Forest a -> List a
 -- traversal compositionally.  This yields not just a list, but a list of lists
 -- of elements, with one list for each level of the tree.
 
-levelt :: Rose   a -> List (List a)
+levelt :: Rose a -> List (List a)
 levelf :: Forest a -> List (List a)
 (levelt, levelf) = (foldR f g, foldF f g)
   where
     f x xss = Cons (wrap x) xss
-    g       = foldL (lzw appendL) Nil
+    g = foldL (lzw appendL) Nil
 
 -- $
 -- The level-order traversal of a forest is obtained by gluing together the
@@ -893,8 +862,8 @@ levelf :: Forest a -> List (List a)
 -- argument, as opposed to that of the shorter one.
 
 lzw :: (a -> a -> a) -> List a -> List a -> List a
-lzw _ Nil         ys          = ys
-lzw _ xs          Nil         = xs
+lzw _ Nil ys = ys
+lzw _ xs Nil = xs
 lzw f (Cons x xs) (Cons y ys) = Cons (f x y) (lzw f xs ys)
 
 -- *** Exercise 3.32
@@ -904,10 +873,10 @@ lzw' :: forall a. (a -> a -> a) -> List a -> List a -> List a
 lzw' f ls rs = unfoldL' ufer (ls, rs)
   where
     ufer :: (List a, List a) -> Maybe (a, (List a, List a))
-    ufer (Cons x xs, Cons y ys) = Just (f x y, (xs,  ys))
-    ufer (Nil,       Cons y ys) = Just (y,     (Nil, ys))
-    ufer (Cons x xs, Nil)       = Just (x,     (xs, Nil))
-    ufer (Nil,       Nil)       = Nothing
+    ufer (Cons x xs, Cons y ys) = Just (f x y, (xs, ys))
+    ufer (Nil, Cons y ys) = Just (y, (Nil, ys))
+    ufer (Cons x xs, Nil) = Just (x, (xs, Nil))
+    ufer (Nil, Nil) = Nothing
 
 -- *** Exercise 3.33
 
@@ -916,10 +885,10 @@ lzwApo :: forall a. (a -> a -> a) -> List a -> List a -> List a
 lzwApo f ls rs = apoL' apoer (ls, rs)
   where
     apoer :: (List a, List a) -> Maybe (a, Either (List a, List a) (List a))
-    apoer (Cons x xs, Cons y ys) = Just (f x y, Left (xs,  ys))
-    apoer (Nil,       Cons y ys) = Just (y, Right ys)
-    apoer (Cons x xs, Nil)       = Just (x, Right xs)
-    apoer (Nil,       Nil)       = Nothing
+    apoer (Cons x xs, Cons y ys) = Just (f x y, Left (xs, ys))
+    apoer (Nil, Cons y ys) = Just (y, Right ys)
+    apoer (Cons x xs, Nil) = Just (x, Right xs)
+    apoer (Nil, Nil) = Nothing
 
 -- $
 -- Of course, having obtained the level-order traversal of a tree or a forest,
@@ -968,7 +937,7 @@ repeat x = Cons x (repeat x)
 -- | Zippy application
 zapp :: List (a -> b) -> List a -> List b
 zapp (Cons f fs) (Cons x xs) = Cons (f x) (zapp fs xs)
-zapp _      _                = Nil
+zapp _ _ = Nil
 
 -- | `List` transposition
 --
@@ -980,9 +949,8 @@ zapp _      _                = Nil
 -- >>> let m = Cons x (Cons y (Cons z Nil))
 -- >>> trans m
 -- Cons (Cons 1 (Cons 4 (Cons 7 Nil))) (Cons (Cons 2 (Cons 5 (Cons 8 Nil))) (Cons (Cons 3 (Cons 6 (Cons 9 Nil))) Nil))
---
 trans :: forall a. List (List a) -> List (List a)
-trans Nil         = repeat Nil
+trans Nil = repeat Nil
 trans (Cons x xs) = repeat Cons `zapp` x `zapp` (trans xs)
 
 ravel :: List (List a) -> List a
@@ -993,24 +961,21 @@ ravel = concatL . trans
 -- |
 -- >>> takeL (Succ (Succ Zero)) x
 -- Cons 1 (Cons 2 Nil)
---
 takeL :: Nat -> List a -> List a
 takeL m as = unfoldL' f (m, as)
   where
-    f (Zero,   _)         = Nothing
-    f (Succ _, Nil)       = Nothing
+    f (Zero, _) = Nothing
+    f (Succ _, Nil) = Nothing
     f (Succ n, Cons x xs) = Just (x, (n, xs))
 
 -- |
 -- >>> dropL (Succ (Succ Zero)) x
 -- Cons 3 Nil
---
 dropL :: Nat -> List a -> List a
 dropL m as = foldN as f m
   where
     f (Cons _ xs) = xs
-    f Nil         = Nil
-
+    f Nil = Nil
 
 -- |
 -- >>> let x = Cons 1 (Cons 2 (Cons 3 Nil))
@@ -1021,20 +986,18 @@ dropL m as = foldN as f m
 -- Cons (Cons 1 (Cons 2 (Cons 3 Nil))) (Cons (Cons 4 (Cons 5 (Cons 6 Nil))) (Cons (Cons 7 (Cons 8 (Cons 9 Nil))) Nil))
 -- >>> ravel (unravel (Succ (Succ (Succ Zero))) m)
 -- Cons 1 (Cons 4 (Cons 7 (Cons 2 (Cons 5 (Cons 8 (Cons 3 (Cons 6 (Cons 9 Nil))))))))
---
 unravel :: forall a. Nat -> List a -> List (List a)
 unravel _ Nil = Nil
-unravel m xs  = Cons (takeL m xs) (unravel m (dropL m xs))
+unravel m xs = Cons (takeL m xs) (unravel m (dropL m xs))
 
 -- *** Exercise 3.43
 
 -- |
 -- >>> hsort (Succ (Succ (Succ Zero))) (Cons 9 (Cons 6 (Cons 1 (Cons 8 (Cons 5 (Cons 2 (Cons 7 (Cons 4 (Cons 3 Nil)))))))))
 -- Cons 1 (Cons 2 (Cons 3 (Cons 6 (Cons 5 (Cons 4 (Cons 9 (Cons 8 (Cons 7 Nil))))))))
---
-hsort :: Ord a => Nat -> List a -> List a
+hsort :: (Ord a) => Nat -> List a -> List a
 hsort n = ravel . (mapL isort) . (unravel n)
 
-shell :: Ord a => List Nat -> List a -> List a
-shell Nil         xs = xs
+shell :: (Ord a) => List Nat -> List a -> List a
+shell Nil xs = xs
 shell (Cons n ns) xs = shell ns (hsort n xs)

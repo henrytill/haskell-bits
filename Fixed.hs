@@ -1,15 +1,17 @@
-{-# LANGUAGE DeriveFunctor        #-}
-{-# LANGUAGE StandaloneDeriving   #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Fixed where
 
 -- | the least fixpoint of functor f
-newtype Fix f = Fix { unFix :: f (Fix f) }
+newtype Fix f = Fix {unFix :: f (Fix f)}
 
-deriving instance   Eq (f (Fix f)) =>   Eq (Fix f)
-deriving instance  Ord (f (Fix f)) =>  Ord (Fix f)
-deriving instance Show (f (Fix f)) => Show (Fix f)
+deriving instance (Eq (f (Fix f))) => Eq (Fix f)
+
+deriving instance (Ord (f (Fix f))) => Ord (Fix f)
+
+deriving instance (Show (f (Fix f))) => Show (Fix f)
 
 data ListF a r
   = N
@@ -17,7 +19,7 @@ data ListF a r
   deriving (Eq, Show)
 
 instance Functor (ListF a) where
-  fmap _ N        = N
+  fmap _ N = N
   fmap f (C x xs) = C x (f xs)
 
 data NatF r
@@ -25,7 +27,7 @@ data NatF r
   | Succ r
   deriving (Eq, Show, Functor)
 
-cata :: Functor f => (f a -> a) -> Fix f -> a
+cata :: (Functor f) => (f a -> a) -> Fix f -> a
 cata alg = alg . fmap (cata alg) . unFix
 
 type List a = Fix (ListF a)

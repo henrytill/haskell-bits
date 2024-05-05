@@ -1,17 +1,17 @@
-{-# LANGUAGE DataKinds          #-}
-{-# LANGUAGE GADTs              #-}
-{-# LANGUAGE KindSignatures     #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TypeFamilies       #-}
-{-# LANGUAGE TypeOperators      #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
+
 -- |
 -- Module      : Singletons
 -- Description : Dependently Typed Programming in Haskell
---
 module Singletons where
 
-import           Data.Proxy
-import           Prelude    hiding (head)
+import Data.Proxy
+import Prelude hiding (head)
 
 -- * Introduction
 
@@ -26,21 +26,23 @@ data Nat :: * where
 deriving instance Show Nat
 
 data Vec :: * -> Nat -> * where
-  VNil  :: Vec a 'Zero
+  VNil :: Vec a 'Zero
   VCons :: a -> Vec a n -> Vec a ('Succ n)
 
-deriving instance Show a => Show (Vec a n)
+deriving instance (Show a) => Show (Vec a n)
 
-type family   (m :: Nat) :< (n :: Nat) :: Bool
-type instance m          :< 'Zero       = 'False
-type instance 'Zero      :< ('Succ n)   = 'True
-type instance ('Succ m)  :< ('Succ n)   = m :< n
+type family (m :: Nat) :< (n :: Nat) :: Bool
+
+type instance m :< 'Zero = 'False
+
+type instance 'Zero :< ('Succ n) = 'True
+
+type instance ('Succ m) :< ('Succ n) = m :< n
 
 -- $
 -- To express the dependency between the value of one runtime argument and the
 -- compile-time type of another requires the definition and use of singleton
 -- types - types with only one non-bottom value.
-
 
 -- |
 -- The constructors of `SNat` mirror those of the kind `Nat`, and only one
@@ -52,7 +54,6 @@ type instance ('Succ m)  :< ('Succ n)   = m :< n
 -- term of that type are always isomorphic.  Thus singleton types can be used to
 -- force term-level computation and type-level computation to proceed in
 -- lock-step.
---
 data SNat :: Nat -> * where
   SZero :: SNat 'Zero
   SSucc :: SNat n -> SNat ('Succ n)
@@ -71,33 +72,31 @@ data SNat :: Nat -> * where
 -- This won't compile:
 --
 -- > exampleFail = nth (SSucc (SSucc (SSucc (SSucc SZero)))) exampleVec
---
-nth :: (m :< n) ~ 'True => SNat m -> Vec a n -> a
-nth SZero       (VCons a _)  = a
+nth :: ((m :< n) ~ 'True) => SNat m -> Vec a n -> a
+nth SZero (VCons a _) = a
 nth (SSucc sm') (VCons _ as) = nth sm' as
-
 
 -- | A safe `head`
 --
 -- >>> let exampleVec = VCons 1 (VCons 2 (VCons 3 VNil))
 -- >>> head exampleVec
 -- 1
---
 head :: Vec a ('Succ n) -> a
 head (VCons h _) = h
 
-type family   (n :: Nat) :+ (m :: Nat) :: Nat
-type instance 'Zero      :+ m           = m
-type instance ('Succ n)  :+ m           = 'Succ (n :+ m)
+type family (n :: Nat) :+ (m :: Nat) :: Nat
+
+type instance 'Zero :+ m = m
+
+type instance ('Succ n) :+ m = 'Succ (n :+ m)
 
 -- |
 -- >>> let x = VCons 1 (VCons 2 (VCons 3 VNil))
 -- >>> let y = VCons 4 (VCons 5 (VCons 6 VNil))
 -- >>> append x y
 -- VCons 1 (VCons 2 (VCons 3 (VCons 4 (VCons 5 (VCons 6 VNil)))))
---
 append :: Vec a n -> Vec a m -> Vec a (n :+ m)
-append VNil        v2 = v2
+append VNil v2 = v2
 append (VCons h t) v2 = VCons h (append t v2)
 
 -- * Hasochism
@@ -109,11 +108,11 @@ append (VCons h t) v2 = VCons h (append t v2)
 -- >>> let x = VCons 1 (VCons 2 (VCons 3 (VCons 4 (VCons 5 (VCons 6 VNil)))))
 -- >>> vchop (SSucc (SSucc (SSucc SZero))) x
 -- (VCons 1 (VCons 2 (VCons 3 VNil)),VCons 4 (VCons 5 (VCons 6 VNil)))
---
 vchop :: SNat m -> Vec x (m :+ n) -> (Vec x m, Vec x n)
-vchop SZero xs               = (VNil,       xs)
+vchop SZero xs = (VNil, xs)
 vchop (SSucc m) (VCons x xs) = (VCons x ys, zs)
-  where (ys, zs) = vchop m xs
+  where
+    (ys, zs) = vchop m xs
 
 -- |
 -- >>> :set -XDataKinds
@@ -122,9 +121,8 @@ vchop (SSucc m) (VCons x xs) = (VCons x ys, zs)
 -- >>> let n = Proxy :: Proxy ('Succ ('Succ ('Succ 'Zero)))
 -- >>> vtake m n x
 -- VCons 1 (VCons 2 (VCons 3 VNil))
---
 vtake :: SNat m -> Proxy n -> Vec x (m :+ n) -> Vec x m
-vtake SZero     _ _            = VNil
+vtake SZero _ _ = VNil
 vtake (SSucc m) n (VCons x xs) = VCons x (vtake m n xs)
 
 -- |
@@ -135,7 +133,6 @@ vtake (SSucc m) n (VCons x xs) = VCons x (vtake m n xs)
 -- >>> let o = proxy n
 -- >>> vtake m o x
 -- VCons 1 (VCons 2 VNil)
---
 proxy :: SNat i -> Proxy i
 proxy _ = Proxy
 
@@ -147,7 +144,7 @@ class SNAT (n :: Nat) where
 instance SNAT 'Zero where
   nat = SZero
 
-instance SNAT n => SNAT ('Succ n) where
+instance (SNAT n) => SNAT ('Succ n) where
   nat = SSucc nat
 
 -- | A more implicit version of `vtake`.  The return type determines the
@@ -157,6 +154,5 @@ instance SNAT n => SNAT ('Succ n) where
 -- >>> :set -XDataKinds -XTypeFamilies
 -- >>> vtrunc Proxy (VCons 1 (VCons 2 (VCons 3 (VCons 4 VNil)))) :: Vec Int (Succ (Succ Zero))
 -- VCons 1 (VCons 2 VNil)
---
-vtrunc :: SNAT m => Proxy n -> Vec x (m :+ n) -> Vec x m
+vtrunc :: (SNAT m) => Proxy n -> Vec x (m :+ n) -> Vec x m
 vtrunc = vtake nat

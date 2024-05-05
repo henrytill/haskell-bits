@@ -17,10 +17,9 @@
 --     * <https://en.wikipedia.org/wiki/Hylomorphism_(computer_science)>
 --
 --     * <http://blog.ezyang.com/2010/05/bananas-lenses-envelopes-and-barbed-wire-a-translation-guide/>
---
 module Bananas where
 
-import Prelude hiding (foldr, length, filter, zip, iterate, map, (||))
+import Prelude hiding (filter, foldr, iterate, length, map, zip, (||))
 
 -- * 2. The data type of lists
 
@@ -30,16 +29,15 @@ data List a
   deriving (Eq, Show)
 
 xs, ys :: List Int
+
 -- |
 -- >>> xs
 -- Cons (1,Cons (2,Cons (3,Nil)))
---
 xs = Cons (1, Cons (2, Cons (3, Nil)))
 
 -- |
 -- >>> ys
 -- Cons (3,Cons (2,Cons (1,Nil)))
---
 ys = Cons (3, Cons (2, Cons (1, Nil)))
 
 -- ** Catamorphisms
@@ -49,15 +47,13 @@ type Cata a b = (b, a -> b -> b)
 -- |
 -- >>> foldr (0, (+)) xs
 -- 6
---
 foldr :: Cata a b -> List a -> b
-foldr   (b,    _) Nil            = b
-foldr h@(_  , op) (Cons (a, as)) = a `op` (foldr h as)
+foldr (b, _) Nil = b
+foldr h@(_, op) (Cons (a, as)) = a `op` (foldr h as)
 
 -- |
 -- >>> length xs
 -- 3
---
 length :: List a -> Integer
 length = foldr (0, op)
   where
@@ -66,12 +62,12 @@ length = foldr (0, op)
 -- |
 -- >>> filter odd xs
 -- Cons (1,Cons (3,Nil))
---
 filter :: (a -> Bool) -> List a -> List a
 filter p = foldr (Nil, op)
   where
-    a `op` as | p a       = Cons (a, as)
-              | otherwise = as
+    a `op` as
+      | p a = Cons (a, as)
+      | otherwise = as
 
 -- ** Anamorphisms
 
@@ -86,8 +82,9 @@ type Ana a b = (b -> (a, b), b -> Bool)
 
 -- | Given a predicate `p` and a function `g`, `unfold` represents a list-anamorphism.
 unfold :: Ana a b -> b -> List a
-unfold h@(g, p) b | p b       = Nil
-                  | otherwise = Cons (a, unfold h b')
+unfold h@(g, p) b
+  | p b = Nil
+  | otherwise = Cons (a, unfold h b')
   where
     (a, b') = g b
 
@@ -95,13 +92,12 @@ unfold h@(g, p) b | p b       = Nil
 --
 -- >>> zip (xs, ys)
 -- Cons ((1,3),Cons ((2,2),Cons ((3,1),Nil)))
---
 zip :: (List x, List y) -> List (x, y)
 zip = unfold (g, p)
   where
-    p (Nil,  _) = True
-    p (_ , Nil) = True
-    p _         = False
+    p (Nil, _) = True
+    p (_, Nil) = True
+    p _ = False
 
     g (Cons (a, as), Cons (b, bs)) = ((a, b), (as, bs))
 
@@ -115,16 +111,14 @@ iterate f = unfold (g, const False)
 --
 -- >>> map (+1) xs
 -- Cons (2,Cons (3,Cons (4,Nil)))
---
 map :: (a -> b) -> List a -> List b
-map _ Nil            = Nil
+map _ Nil = Nil
 map f (Cons (a, as)) = Cons (f a, map f as)
 
 -- | Applies `f` to every element in a given `List` (Catamorphic version)
 --
 -- >>> cataMap (+1) xs
 -- Cons (2,Cons (3,Cons (4,Nil)))
---
 cataMap :: (a -> b) -> List a -> List b
 cataMap f = foldr (Nil, op)
   where
@@ -134,12 +128,11 @@ cataMap f = foldr (Nil, op)
 --
 -- >>> anaMap (+1) xs
 -- Cons (2,Cons (3,Cons (4,Nil)))
---
 anaMap :: (a -> b) -> List a -> List b
 anaMap f = unfold (g, p)
   where
     p Nil = True
-    p _   = False
+    p _ = False
 
     g (Cons (a, as)) = (f a, as)
 
@@ -162,8 +155,9 @@ anaMap f = unfold (g, p)
 type Hylo a b c = ((Cata b c), (Ana b a))
 
 unfoldAndFold :: Hylo a b c -> a -> c
-unfoldAndFold h@((c, op), (g, p)) a | p a       = c
-                                    | otherwise = b `op` unfoldAndFold h a'
+unfoldAndFold h@((c, op), (g, p)) a
+  | p a = c
+  | otherwise = b `op` unfoldAndFold h a'
   where
     (b, a') = g a
 
@@ -171,7 +165,6 @@ unfoldAndFold h@((c, op), (g, p)) a | p a       = c
 --
 -- >>> fac 5
 -- 120
---
 fac :: Integer -> Integer
 fac = unfoldAndFold ((1, (*)), (g, p))
   where
@@ -197,26 +190,24 @@ fac = unfoldAndFold ((1, (*)), (g, p))
 type Para a b c = (b, a -> c -> b)
 
 numPara :: (Eq a, Num a) => Para a b b -> a -> b
-numPara   (b,  _) 0 = b
+numPara (b, _) 0 = b
 numPara h@(_, op) n = (n - 1) `op` (numPara h (n - 1))
 
 -- |
 -- >>> fac' 5
 -- 120
---
 fac' :: Integer -> Integer
 fac' = numPara (1, op)
   where
     n `op` m = (1 + n) * m
 
 listPara :: Para a b (List a, b) -> List a -> b
-listPara   (b,  _) Nil            = b
+listPara (b, _) Nil = b
 listPara h@(_, op) (Cons (a, as)) = a `op` (as, listPara h as)
 
 -- |
 -- >>> tails xs
 -- Cons (Cons (1,Cons (2,Cons (3,Nil))),Cons (Cons (2,Cons (3,Nil)),Cons (Cons (3,Nil),Cons (Nil,Nil))))
---
 tails :: List a -> List (List a)
 tails = listPara (Cons (Nil, Nil), op)
   where

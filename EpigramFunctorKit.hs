@@ -1,15 +1,18 @@
-{-# LANGUAGE InstanceSigs         #-}
-{-# LANGUAGE TypeOperators        #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module EpigramFunctorKit where
 
 import Data.Traversable (foldMapDefault)
 
-newtype I      x = I { unI :: x }    deriving Show
-newtype K a    x = K { unK :: a }    deriving Show
-data (p :+: q) x = L (p x) | R (q x) deriving Show
-data (p :*: q) x = p x :*: q x       deriving Show
+newtype I x = I {unI :: x} deriving (Show)
+
+newtype K a x = K {unK :: a} deriving (Show)
+
+data (p :+: q) x = L (p x) | R (q x) deriving (Show)
+
+data (p :*: q) x = p x :*: q x deriving (Show)
 
 instance Functor I where
   fmap f (I x) = I (f x)
@@ -22,7 +25,7 @@ instance (Functor p, Functor q) => Functor (p :+: q) where
   fmap f (R qx) = R (fmap f qx)
 
 instance (Functor p, Functor q) => Functor (p :*: q) where
-  fmap f (px :*: qx)  = fmap f px :*: fmap f qx
+  fmap f (px :*: qx) = fmap f px :*: fmap f qx
 
 instance Foldable I where
   foldMap = foldMapDefault
@@ -39,14 +42,17 @@ instance (Traversable p, Traversable q, Foldable p, Foldable q) => Foldable (p :
 -- | tying the knot
 newtype Fix f = InF (f (Fix f))
 
-instance Show (f (Fix f)) => Show (Fix f) where
+instance (Show (f (Fix f))) => Show (Fix f) where
   show (InF x) = "InF (" ++ show x ++ ")"
 
-rec :: Functor f => (f v -> v) -> Fix f -> v
-rec m (InF fd) = m
-    (fmap (rec m {- :: Fix f -> v -})
-          (fd {- :: f (Fix f)-})
-     {- :: f v -})
+rec :: (Functor f) => (f v -> v) -> Fix f -> v
+rec m (InF fd) =
+  m
+    ( fmap
+        (rec m {- :: Fix f -> v -})
+        (fd {- :: f (Fix f)-})
+        {- :: f v -}
+    )
 
 instance Traversable I where
   traverse f (I x) = I <$> f x
@@ -67,7 +73,7 @@ instance Applicative I where
   I f <*> I s = I (f s)
 
 -- | makes crush from traverse
-instance Monoid c => Applicative (K c) where
+instance (Monoid c) => Applicative (K c) where
   pure :: x -> K c x
   pure _ = K mempty
   (<*>) :: K c (s -> t) -> K c s -> K c t
@@ -80,8 +86,8 @@ reduce :: (Traversable f, Monoid c) => f c -> c
 reduce = crush id
 
 instance Monoid Int where
-  mempty  = 0
+  mempty = 0
   mappend = (+)
 
 size :: (Functor f, Traversable f) => Fix f -> Int
-size = rec ((1+) . reduce)
+size = rec ((1 +) . reduce)
