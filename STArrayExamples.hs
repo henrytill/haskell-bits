@@ -1,11 +1,11 @@
-module STArrayExamples where
 -- |
 -- Module      : STArrayExamples
 -- Description : Some STArray examples
 --
 -- Code from John Launchbury and Simon Peyton-Jones'
 -- /Lazy Functional State Threads/
---
+module STArrayExamples where
+
 import Control.Monad.ST
 import Data.Array
 import Data.Array.ST
