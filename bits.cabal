@@ -1,0 +1,68 @@
+cabal-version:      3.0
+name:               bits
+version:            0.1.0.0
+synopsis:           Some random bits of code
+-- description:
+-- license:            Unlicense
+-- license-file:       LICENSE
+author:             Henry Till
+maintainer:         henrytill@gmail.com
+-- copyright:
+build-type:         Simple
+-- extra-doc-files:    CHANGELOG.md
+-- extra-source-files:
+
+common warnings
+    ghc-options: -Wall
+
+library
+    import:           warnings
+    exposed-modules:  Bits.AgdaLens
+                      Bits.ALaCarte
+                      Bits.ApplicativeExamples
+                      Bits.AwkwardSquad
+                      Bits.Bananas
+                      Bits.CoinductiveStreams
+                      Bits.EpigramFunctorKit
+                      Bits.FirstLenses
+                      Bits.Fixed
+                      Bits.FunDeps
+                      Bits.FunWithPhantomTypes
+                      Bits.Graph
+                      Bits.IteratorEssence
+                      Bits.MicroParsec
+                      Bits.Misc
+                      Bits.NatFun
+                      Bits.Origami
+                      Bits.Polarity
+                      Bits.RankNTypesExamples
+                      Bits.Singletons
+                      Bits.STArrayExamples
+                      Bits.STExplorations
+                      Bits.TinyServant
+                      Bits.TwoLevel
+                      Bits.WorkerWrapper
+                      Bits.Zipper
+    -- other-modules:
+    -- other-extensions:
+    build-depends:    base ^>=4.17.2.1,
+                      array ^>=0.5.4.0,
+                      containers >=0.6,
+                      mtl >=2.2,
+                      prettyprinter-compat-ansi-wl-pprint ^>=1.0.2,
+                      random ^>=1.2.1.2,
+                      time ^>=1.12.2
+    hs-source-dirs:   src
+    default-language: Haskell2010
+
+test-suite bits-test
+    import:           warnings
+    default-language: Haskell2010
+    -- other-modules:
+    -- other-extensions:
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Main.hs
+    build-depends:
+        base ^>=4.17.2.1,
+        bits
